@@ -1,0 +1,422 @@
+// Prisma schema for Quran LMS - Student Progress Dashboard
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  SUPER_ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum AssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum SessionType {
+  NEW_MEMORIZATION
+  REVISION
+  RE_TEST
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  MEMORIZED
+  NEEDS_REVIEW
+}
+
+enum QualityRating {
+  EXCELLENT
+  GOOD
+  NEEDS_IMPROVEMENT
+}
+
+enum MilestoneType {
+  SURAH_COMPLETE
+  JUZ_COMPLETE
+  STREAK_3
+  STREAK_7
+  STREAK_30
+  FIRST_SESSION
+}
+
+// ============================================
+// AUTHENTICATION & USER MANAGEMENT
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String
+  role          UserRole
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth.js fields
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  // Role-specific profiles
+  teacherProfile TeacherProfile?
+  studentProfile StudentProfile?
+  parentProfile  ParentProfile?
+
+  // Center association
+  centerId String?
+  center   Center? @relation(fields: [centerId], references: [id])
+
+  @@index([email])
+  @@index([centerId])
+  @@index([role])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// CENTER (Multi-tenancy)
+// ============================================
+
+model Center {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    User[]
+  settings CenterSettings?
+}
+
+model CenterSettings {
+  id       String @id @default(cuid())
+  centerId String @unique
+  center   Center @relation(fields: [centerId], references: [id], onDelete: Cascade)
+
+  // Settings (simplified for MVP)
+  allowRetesting Boolean @default(true)
+}
+
+// ============================================
+// ROLE-SPECIFIC PROFILES
+// ============================================
+
+model TeacherProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization String?
+  bio            String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  students    StudentTeacher[]
+  sessions    RecitationSession[]
+  assignments Assignment[]
+}
+
+model StudentProfile {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateOfBirth    DateTime?
+  enrollmentDate DateTime  @default(now())
+  currentSurahId Int       @default(1)
+  currentAyah    Int       @default(1)
+  currentStreak  Int       @default(0)
+  longestStreak  Int       @default(0)
+  lastActiveDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  teachers    StudentTeacher[]
+  sessions    RecitationSession[]
+  assignments Assignment[]
+  progress    StudentProgress[]
+  parents     ParentStudent[]
+  accessCodes ParentAccessCode[]
+  milestones  Milestone[]
+}
+
+model ParentProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students ParentStudent[]
+}
+
+// ============================================
+// RELATIONSHIP TABLES
+// ============================================
+
+model StudentTeacher {
+  id         String         @id @default(cuid())
+  studentId  String
+  teacherId  String
+  student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher    TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  isPrimary  Boolean        @default(false)
+  assignedAt DateTime       @default(now())
+
+  @@unique([studentId, teacherId])
+  @@index([studentId])
+  @@index([teacherId])
+}
+
+model ParentStudent {
+  id           String         @id @default(cuid())
+  parentId     String
+  studentId    String
+  parent       ParentProfile  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  relationship String         @default("parent")
+  linkedAt     DateTime       @default(now())
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+}
+
+model ParentAccessCode {
+  id        String         @id @default(cuid())
+  code      String         @unique
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  isUsed    Boolean        @default(false)
+  usedBy    String?
+  expiresAt DateTime
+  createdAt DateTime       @default(now())
+
+  @@index([code])
+  @@index([studentId])
+}
+
+// ============================================
+// QURAN REFERENCE DATA
+// ============================================
+
+model Surah {
+  id             Int     @id
+  nameArabic     String
+  nameEnglish    String
+  nameTranslit   String
+  totalAyahs     Int
+  revelationType String
+  orderInQuran   Int
+
+  ayahs       Ayah[]
+  sessions    RecitationSession[]
+  assignments Assignment[]
+  progress    StudentProgress[]
+
+  @@index([nameEnglish])
+}
+
+model Ayah {
+  id          Int    @id @default(autoincrement())
+  surahId     Int
+  surah       Surah  @relation(fields: [surahId], references: [id])
+  ayahNumber  Int
+  textArabic  String @db.Text
+  textUthmani String? @db.Text
+
+  @@unique([surahId, ayahNumber])
+  @@index([surahId])
+}
+
+// ============================================
+// CORE: SESSIONS & ASSIGNMENTS
+// ============================================
+
+model RecitationSession {
+  id           String        @id @default(cuid())
+  studentId    String
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId    String
+  teacher      TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  surahId      Int
+  surah        Surah         @relation(fields: [surahId], references: [id])
+  startAyah    Int
+  endAyah      Int
+  sessionDate  DateTime      @default(now())
+  duration     Int?
+  mistakeCount Int           @default(0)
+  isPassed     Boolean       @default(true)
+  quality      QualityRating @default(GOOD)
+  sessionType  SessionType   @default(NEW_MEMORIZATION)
+  notes        String?
+  voided       Boolean       @default(false)
+  voidedAt     DateTime?
+  voidedBy     String?
+  voidReason   String?
+  assignmentId String?
+  assignment   Assignment?   @relation(fields: [assignmentId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([sessionDate])
+  @@index([surahId])
+  @@index([assignmentId])
+}
+
+model Assignment {
+  id           String           @id @default(cuid())
+  studentId    String
+  student      StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId    String
+  teacher      TeacherProfile   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  surahId      Int
+  surah        Surah            @relation(fields: [surahId], references: [id])
+  startAyah    Int
+  endAyah      Int
+  status       AssignmentStatus @default(PENDING)
+  dueDate      DateTime?
+  instructions String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  completedAt  DateTime?
+
+  sessions RecitationSession[]
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([status])
+  @@index([surahId])
+}
+
+// ============================================
+// PROGRESS TRACKING
+// ============================================
+
+model StudentProgress {
+  id                 String         @id @default(cuid())
+  studentId          String
+  student            StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  surahId            Int
+  surah              Surah          @relation(fields: [surahId], references: [id])
+  memorizedRanges    Json           @default("[]")
+  totalVersesMem     Int            @default(0)
+  totalVersesInSurah Int
+  status             ProgressStatus @default(NOT_STARTED)
+  lastReviewDate     DateTime?
+  avgMistakes        Float          @default(0)
+  sessionCount       Int            @default(0)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@unique([studentId, surahId])
+  @@index([studentId])
+  @@index([surahId])
+}
+
+model Milestone {
+  id        String         @id @default(cuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  type      MilestoneType
+  surahId   Int?
+  juzNumber Int?
+  earnedAt  DateTime       @default(now())
+
+  @@index([studentId])
+  @@index([type])
+}
+
+// ============================================
+// AUDIT & ANTI-CHEATING (Deferred to post-MVP)
+// ============================================
+
+// model AuditLog {
+//   id         String   @id @default(cuid())
+//   userId     String
+//   action     String
+//   entityType String
+//   entityId   String
+//   details    Json?
+//   ipAddress  String?
+//   userAgent  String?
+//   createdAt  DateTime @default(now())
+//
+//   @@index([userId])
+//   @@index([entityType, entityId])
+//   @@index([createdAt])
+// }
+
+// model AntiCheatFlag {
+//   id          String   @id @default(cuid())
+//   studentId   String
+//   flagType    String
+//   severity    String
+//   description String
+//   sessionIds  String[]
+//   isResolved  Boolean  @default(false)
+//   resolvedBy  String?
+//   resolvedAt  DateTime?
+//   resolution  String?
+//   createdAt   DateTime @default(now())
+//
+//   @@index([studentId])
+//   @@index([isResolved])
+//   @@index([createdAt])
+// }

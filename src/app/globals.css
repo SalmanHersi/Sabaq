@@ -1,26 +1,218 @@
 @import "tailwindcss";
 
+/* Brand Colors CSS Variables */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --parchment: #F9F9F7;
+  --cream: #F2F0EB;
+  --ink: #1A1A1A;
+  --oxblood: #8C4A45;
+  --navy: #2C3E50;
+  --gold: #C5A065;
+  --sage: #6B8E23;
+
+  --background: var(--parchment);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-parchment: var(--parchment);
+  --color-cream: var(--cream);
+  --color-ink: var(--ink);
+  --color-oxblood: var(--oxblood);
+  --color-navy: var(--navy);
+  --color-gold: var(--gold);
+  --color-sage: var(--sage);
+  --font-sans: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Quran Mushaf styling - Responsive like Quran.com */
+.quran-container {
+  font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Scheherazade New', serif;
+  direction: rtl;
+  text-align: justify;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Responsive wrapper */
+.quran-page-wrapper {
+  width: 100%;
+  margin: 0 auto;
+}
+
+.quran-text {
+  font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Scheherazade New', serif;
+  direction: rtl;
+  text-align: justify;
+  line-height: 2.8;
+  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  word-spacing: 0.12em;
+  letter-spacing: 0;
+}
+
+.quran-text-mushaf {
+  font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Scheherazade New', serif;
+  direction: rtl;
+  text-align: justify;
+  /* Responsive font size - larger like Quran.com */
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  /* Generous line height for Arabic diacritics - key for readability */
+  line-height: 2.6;
+  /* Word spacing for better readability */
+  word-spacing: 0.15em;
+  letter-spacing: 0;
+  /* Proper text rendering */
+  font-feature-settings: "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.quran-text-centered {
+  font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Scheherazade New', serif;
+  direction: rtl;
+  text-align: center;
+  line-height: 2.6;
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+}
+
+/* Ayah end marker - Quran.com style elegant circular ornament */
+.ayah-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Larger size to match Quran.com */
+  width: 1.6em;
+  height: 1.6em;
+  margin: 0 0.15em;
+  vertical-align: middle;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ayah-marker-circle {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid #8b7355;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.ayah-marker-inner {
+  position: absolute;
+  inset: 3px;
+  border: 1px solid #8b7355;
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.ayah-marker-number {
+  position: relative;
+  z-index: 1;
+  font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Scheherazade New', serif;
+  font-size: 0.5em;
+  font-weight: 400;
+  color: #5d4e37;
+  line-height: 1;
+}
+
+/* Bismillah styling */
+.bismillah {
+  font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Scheherazade New', serif;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  text-align: center;
+  direction: rtl;
+  padding: 1.5rem 0;
+  color: #2C3E50;
+  letter-spacing: 0.02em;
+}
+
+/* Surah header */
+.surah-header {
+  font-family: 'Amiri Quran', 'Scheherazade New', serif;
+  text-align: center;
+  direction: rtl;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--gold);
+  margin-bottom: 1rem;
+}
+
+.surah-name-arabic {
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: 0.02em;
+}
+
+.surah-name-english {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  color: var(--ink);
+  opacity: 0.6;
+  direction: ltr;
+  margin-top: 0.25rem;
+}
+
+/* Word-level styling for mistake marking */
+.quran-word {
+  display: inline;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.quran-word:hover {
+  background-color: rgba(197, 160, 101, 0.1);
+}
+
+.quran-word:active {
+  background-color: rgba(197, 160, 101, 0.2);
+}
+
+@media (pointer: coarse) {
+  .quran-word {
+    padding: 4px 6px;
+  }
+}
+
+/* Custom scrollbar with brand colors */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--oxblood);
+}
+
+/* Focus ring with brand color */
+*:focus-visible {
+  outline: 2px solid var(--oxblood);
+  outline-offset: 2px;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(140, 74, 69, 0.2);
 }
