@@ -1,60 +1,34 @@
-import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Define which routes each role can access
-const roleRoutes: Record<string, string[]> = {
-  SUPER_ADMIN: ["/admin", "/teacher", "/student", "/parent"],
-  TEACHER: ["/teacher"],
-  STUDENT: ["/student"],
-  PARENT: ["/parent"],
-};
+// Define protected routes that require authentication
+const isProtectedRoute = createRouteMatcher([
+  "/admin(.*)",
+  "/teacher(.*)",
+  "/student(.*)",
+  "/parent(.*)",
+]);
 
-// Default redirect paths for each role
-const roleDefaultPaths: Record<string, string> = {
-  SUPER_ADMIN: "/admin",
-  TEACHER: "/teacher",
-  STUDENT: "/student",
-  PARENT: "/parent",
-};
+// Define public routes that don't require authentication
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/login(.*)",
+  "/signup(.*)",
+  "/verify-request(.*)",
+  "/api/webhooks(.*)",
+]);
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token;
-    const path = req.nextUrl.pathname;
-
-    // If no token, redirect to login (handled by withAuth)
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
-
-    const userRole = token.role as string;
-    const allowedPaths = roleRoutes[userRole] || [];
-
-    // Check if user has access to the current path
-    const hasAccess = allowedPaths.some((allowedPath) =>
-      path.startsWith(allowedPath)
-    );
-
-    if (!hasAccess) {
-      // Redirect to user's default dashboard
-      const defaultPath = roleDefaultPaths[userRole] || "/login";
-      return NextResponse.redirect(new URL(defaultPath, req.url));
-    }
-
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
-    },
+export default clerkMiddleware(async (auth, req) => {
+  // If it's a protected route and user is not authenticated, redirect to login
+  if (isProtectedRoute(req)) {
+    await auth.protect();
   }
-);
+});
 
 export const config = {
   matcher: [
-    "/admin/:path*",
-    "/teacher/:path*",
-    "/student/:path*",
-    "/parent/:path*",
+    // Skip Next.js internals and all static files, unless found in search params
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
   ],
 };

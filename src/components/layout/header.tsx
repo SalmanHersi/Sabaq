@@ -1,7 +1,7 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
-import { LogOut, Bell, Menu } from "lucide-react";
+import { UserButton, useUser } from "@clerk/nextjs";
+import { Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
@@ -10,7 +10,7 @@ interface HeaderProps {
 }
 
 export function Header({ title, onMenuClick }: HeaderProps) {
-  const { data: session } = useSession();
+  const { user } = useUser();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gold/20 bg-white px-4 lg:px-6">
@@ -29,16 +29,16 @@ export function Header({ title, onMenuClick }: HeaderProps) {
 
         <div className="flex items-center gap-3">
           <span className="text-sm text-ink/70">
-            {session?.user?.name || "Guest"}
+            {user?.fullName || user?.firstName || "Guest"}
           </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            title="Sign out"
-          >
-            <LogOut className="h-5 w-5 text-ink/60" />
-          </Button>
+          <UserButton
+            afterSignOutUrl="/login"
+            appearance={{
+              elements: {
+                avatarBox: "h-9 w-9",
+              },
+            }}
+          />
         </div>
       </div>
     </header>

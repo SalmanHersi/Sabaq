@@ -1,6 +1,20 @@
-import { UserRole, AssignmentStatus, SessionType, ProgressStatus } from "@prisma/client";
+// User roles
+export type UserRole = "SUPER_ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
 
-export type { UserRole, AssignmentStatus, SessionType, ProgressStatus };
+// Assignment status
+export type AssignmentStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE";
+
+// Session types
+export type SessionType = "NEW_MEMORIZATION" | "REVISION" | "RE_TEST";
+
+// Progress status
+export type ProgressStatus = "NOT_STARTED" | "IN_PROGRESS" | "MEMORIZED" | "NEEDS_REVIEW";
+
+// Quality rating
+export type QualityRating = "EXCELLENT" | "GOOD" | "NEEDS_IMPROVEMENT";
+
+// Milestone types
+export type MilestoneType = "SURAH_COMPLETE" | "JUZ_COMPLETE" | "STREAK_3" | "STREAK_7" | "STREAK_30" | "FIRST_SESSION";
 
 export interface SurahInfo {
   id: number;

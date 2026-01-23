@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   LayoutDashboard,
   Users,
@@ -15,7 +16,8 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { UserRole } from "@prisma/client";
+
+type UserRole = "SUPER_ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
 
 interface NavItem {
   title: string;
@@ -125,8 +127,8 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const userRole = session?.user?.role as UserRole | undefined;
+  const { user: clerkUser } = useUser();
+  const { user: convexUser, role: userRole } = useCurrentUser();
 
   const filteredNavItems = navItems.filter(
     (item) => userRole && item.roles.includes(userRole)
@@ -206,7 +208,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             </div>
             <div className="flex-1 truncate">
               <p className="text-sm font-medium text-navy truncate">
-                {session?.user?.name || "User"}
+                {convexUser?.name || clerkUser?.fullName || "User"}
               </p>
               <p className="text-xs text-ink/50 capitalize">
                 {userRole?.toLowerCase().replace("_", " ") || "Guest"}
