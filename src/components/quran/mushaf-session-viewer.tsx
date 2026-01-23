@@ -405,8 +405,8 @@ export function MushafSessionViewer({
 
       {/* Selection Info */}
       {hasSelection && (
-        <div className="bg-blue-50 p-2 sm:p-3 rounded-lg border border-blue-200">
-          <div className="flex items-center justify-between text-xs sm:text-sm text-blue-800 flex-wrap gap-1">
+        <div className="bg-sky-50/70 p-2 sm:p-3 rounded-lg border border-sky-200">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-sky-700 flex-wrap gap-1">
             <span>
               Selected: Verses {startAyah} - {endAyah} ({endAyah! - startAyah! + 1} verses)
             </span>
@@ -500,24 +500,24 @@ export function MushafSessionViewer({
                         "cursor-pointer transition-all duration-150",
                         // Dim words from other surahs
                         !isCurrentSurah && "opacity-40",
-                        // Selection highlighting
-                        inRange && !mistakeType && "bg-blue-100/60",
+                        // Selection highlighting - lighter color with padding to eliminate gaps
+                        inRange && !mistakeType && "bg-sky-100/30 py-1 -my-1",
                         // Selection in progress
                         selectionState === "selecting" &&
                           ayahNum === tempStartAyah &&
                           isCurrentSurah &&
-                          "bg-blue-200 rounded",
+                          "bg-sky-200/50 rounded py-1 -my-1",
                         // Mistake highlighting
-                        mistakeType === "WORD_MISTAKE" && "bg-orange-200 rounded px-0.5",
-                        mistakeType === "FORGOT_AYAH" && "bg-red-200/80",
+                        mistakeType === "WORD_MISTAKE" && "bg-orange-200/70 rounded px-0.5",
+                        mistakeType === "FORGOT_AYAH" && "bg-red-200/60",
                         // Hover states
-                        isCurrentSurah && mode !== "view" && currentMode === "select" && "hover:bg-blue-200/50",
+                        isCurrentSurah && mode !== "view" && currentMode === "select" && "hover:bg-sky-100/40",
                         isCurrentSurah &&
                           mode !== "view" &&
                           currentMode === "mistakes" &&
                           inRange &&
                           !ayahForgot &&
-                          "hover:bg-orange-100"
+                          "hover:bg-orange-100/60"
                       )}
                       title={word.textUthmani}
                     >
@@ -618,15 +618,15 @@ export function MushafSessionViewer({
       {mode !== "view" && (
         <div className="flex flex-wrap gap-2 sm:gap-4 text-[10px] sm:text-xs text-stone-500 justify-center">
           <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-blue-100" />
+            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-sky-100" />
             <span>Selected</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-red-200" />
+            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-red-200/60" />
             <span>Forgot</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-orange-200" />
+            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-orange-200/70" />
             <span>Mistake</span>
           </div>
         </div>

@@ -1,58 +1,34 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Trophy, Target, TrendingUp } from "lucide-react";
-
-interface Surah {
-  id: number;
-  nameArabic: string;
-  nameEnglish: string;
-  totalAyahs: number;
-}
-
-interface Progress {
-  surahId: number;
-  totalVersesMem: number;
-  totalVersesInSurah: number;
-  status: string;
-  avgGrade: number;
-  sessionCount: number;
-}
+import { BookOpen, Trophy, Target, TrendingUp, Loader2 } from "lucide-react";
 
 interface QuranProgressGridProps {
   studentId?: string;
-  progress?: Progress[];
 }
 
-export function QuranProgressGrid({ studentId, progress: initialProgress }: QuranProgressGridProps) {
-  const [surahs, setSurahs] = useState<Surah[]>([]);
-  const [progress, setProgress] = useState<Progress[]>(initialProgress || []);
-  const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
-  const [loading, setLoading] = useState(true);
+export function QuranProgressGrid({ studentId }: QuranProgressGridProps) {
+  const [selectedSurahNumber, setSelectedSurahNumber] = useState<number | null>(null);
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/surahs").then((r) => r.json()),
-      studentId ? fetch(`/api/progress?studentId=${studentId}`).then((r) => r.json()) : Promise.resolve([]),
-    ])
-      .then(([surahsData, progressData]) => {
-        setSurahs(surahsData);
-        if (Array.isArray(progressData)) {
-          setProgress(progressData);
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [studentId]);
+  const surahs = useQuery(api.quran.listSurahs, {});
+  const progress = useQuery(
+    api.progress.getByStudent,
+    studentId ? { studentId: studentId as Id<"studentProfiles"> } : "skip"
+  );
 
-  const getProgressForSurah = (surahId: number) => {
-    return progress.find((p) => p.surahId === surahId);
+  const loading = surahs === undefined || (studentId && progress === undefined);
+
+  const getProgressForSurah = (surahNumber: number) => {
+    return progress?.find((p) => p.surahNumber === surahNumber);
   };
 
-  const getStatusColor = (surahId: number) => {
-    const prog = getProgressForSurah(surahId);
+  const getStatusColor = (surahNumber: number) => {
+    const prog = getProgressForSurah(surahNumber);
     if (!prog) return "bg-cream text-ink/40";
 
     const percent = (prog.totalVersesMem / prog.totalVersesInSurah) * 100;
@@ -61,29 +37,32 @@ export function QuranProgressGrid({ studentId, progress: initialProgress }: Qura
     return "bg-cream text-ink/40";
   };
 
-  const getTooltip = (surah: Surah) => {
-    const prog = getProgressForSurah(surah.id);
-    if (!prog) return `${surah.nameEnglish} - Not started`;
+  const getTooltip = (surahNumber: number, nameEnglish: string, totalAyahs: number) => {
+    const prog = getProgressForSurah(surahNumber);
+    if (!prog) return `${nameEnglish} - Not started`;
 
     const percent = Math.round((prog.totalVersesMem / prog.totalVersesInSurah) * 100);
-    return `${surah.nameEnglish} - ${percent}% (${prog.totalVersesMem}/${prog.totalVersesInSurah} verses)`;
+    return `${nameEnglish} - ${percent}% (${prog.totalVersesMem}/${prog.totalVersesInSurah} verses)`;
   };
 
   // Calculate statistics
-  const totalVersesMemoized = progress.reduce((sum, p) => sum + p.totalVersesMem, 0);
+  const totalVersesMemoized = progress?.reduce((sum, p) => sum + p.totalVersesMem, 0) || 0;
   const totalVerses = 6236;
-  const surahsCompleted = progress.filter(
+  const surahsCompleted = progress?.filter(
     (p) => p.totalVersesMem >= p.totalVersesInSurah
-  ).length;
-  const avgGrade = progress.length > 0
-    ? progress.reduce((sum, p) => sum + p.avgGrade, 0) / progress.length
+  ).length || 0;
+  const avgGrade = progress && progress.length > 0
+    ? progress.reduce((sum, p) => sum + p.avgMistakes, 0) / progress.length
     : 0;
+
+  const selectedSurah = surahs?.find((s) => s.surahNumber === selectedSurahNumber);
 
   if (loading) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <div className="animate-pulse">Loading progress...</div>
+          <Loader2 className="h-8 w-8 animate-spin text-oxblood mx-auto" />
+          <p className="mt-2 text-ink/50">Loading progress...</p>
         </CardContent>
       </Card>
     );
@@ -128,7 +107,7 @@ export function QuranProgressGrid({ studentId, progress: initialProgress }: Qura
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {progress.filter((p) => p.totalVersesMem > 0 && p.totalVersesMem < p.totalVersesInSurah).length}
+              {progress?.filter((p) => p.totalVersesMem > 0 && p.totalVersesMem < p.totalVersesInSurah).length || 0}
             </div>
             <p className="text-xs text-ink/50">surahs started</p>
           </CardContent>
@@ -136,12 +115,12 @@ export function QuranProgressGrid({ studentId, progress: initialProgress }: Qura
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Grade</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Mistakes</CardTitle>
             <TrendingUp className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{avgGrade > 0 ? avgGrade.toFixed(1) : "--"}</div>
-            <p className="text-xs text-ink/50">out of 10</p>
+            <p className="text-xs text-ink/50">per session</p>
           </CardContent>
         </Card>
       </div>
@@ -153,20 +132,20 @@ export function QuranProgressGrid({ studentId, progress: initialProgress }: Qura
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-14 xl:grid-cols-19 gap-1.5 sm:gap-1">
-            {surahs.map((surah) => (
+            {surahs?.map((surah) => (
               <button
-                key={surah.id}
+                key={surah._id}
                 type="button"
-                onClick={() => setSelectedSurah(surah)}
+                onClick={() => setSelectedSurahNumber(surah.surahNumber)}
                 className={cn(
                   "aspect-square min-h-[36px] min-w-[36px] sm:min-h-[32px] sm:min-w-[32px] rounded text-xs font-medium transition-all active:scale-95 hover:scale-110 hover:z-10",
                   "flex items-center justify-center cursor-pointer",
-                  getStatusColor(surah.id),
-                  selectedSurah?.id === surah.id && "ring-2 ring-offset-2 ring-navy"
+                  getStatusColor(surah.surahNumber),
+                  selectedSurahNumber === surah.surahNumber && "ring-2 ring-offset-2 ring-navy"
                 )}
-                title={getTooltip(surah)}
+                title={getTooltip(surah.surahNumber, surah.nameEnglish, surah.totalAyahs)}
               >
-                {surah.id}
+                {surah.surahNumber}
               </button>
             ))}
           </div>
@@ -193,13 +172,13 @@ export function QuranProgressGrid({ studentId, progress: initialProgress }: Qura
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <div>
                   <h3 className="font-semibold text-base sm:text-lg">
-                    {selectedSurah.id}. {selectedSurah.nameEnglish}
+                    {selectedSurah.surahNumber}. {selectedSurah.nameEnglish}
                   </h3>
                   <p className="text-ink/50 text-sm">{selectedSurah.nameArabic}</p>
                 </div>
                 <div className="sm:text-right">
                   {(() => {
-                    const prog = getProgressForSurah(selectedSurah.id);
+                    const prog = getProgressForSurah(selectedSurah.surahNumber);
                     if (!prog) return <span className="text-ink/50">Not started</span>;
                     const percent = Math.round((prog.totalVersesMem / prog.totalVersesInSurah) * 100);
                     return (
@@ -210,7 +189,7 @@ export function QuranProgressGrid({ studentId, progress: initialProgress }: Qura
                         </p>
                         {prog.sessionCount > 0 && (
                           <p className="text-sm text-ink/50">
-                            {prog.sessionCount} sessions | Avg: {prog.avgGrade.toFixed(1)}/10
+                            {prog.sessionCount} sessions | Avg mistakes: {prog.avgMistakes.toFixed(1)}
                           </p>
                         )}
                       </>

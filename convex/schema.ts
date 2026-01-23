@@ -185,6 +185,13 @@ export default defineSchema({
     sessionDate: v.number(),
     duration: v.optional(v.number()),
     mistakeCount: v.number(),
+    // Detailed mistake tracking: which ayahs/words had mistakes
+    mistakeDetails: v.optional(v.array(v.object({
+      ayah: v.number(),
+      wordIndex: v.optional(v.number()),
+      wordText: v.optional(v.string()),
+      type: v.union(v.literal("FORGOT_AYAH"), v.literal("WORD_MISTAKE")),
+    }))),
     isPassed: v.boolean(),
     quality: qualityRating,
     sessionType: sessionType,
@@ -206,10 +213,12 @@ export default defineSchema({
   assignments: defineTable({
     studentId: v.id("studentProfiles"),
     teacherId: v.id("teacherProfiles"),
-    surahId: v.id("surahs"),
-    surahNumber: v.number(),
-    startAyah: v.number(),
-    endAyah: v.number(),
+    title: v.string(),
+    // Optional Quran-specific fields
+    surahId: v.optional(v.id("surahs")),
+    surahNumber: v.optional(v.number()),
+    startAyah: v.optional(v.number()),
+    endAyah: v.optional(v.number()),
     status: assignmentStatus,
     dueDate: v.optional(v.number()),
     instructions: v.optional(v.string()),
@@ -220,6 +229,7 @@ export default defineSchema({
     .index("by_student", ["studentId"])
     .index("by_teacher", ["teacherId"])
     .index("by_status", ["status"])
+    .index("by_due_date", ["dueDate"])
     .index("by_surah", ["surahId"]),
 
   // ============================================

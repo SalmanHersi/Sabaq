@@ -190,6 +190,48 @@ export const runAllSeeds = mutation({
   },
 });
 
+// Debug: Check all data in the system
+export const debugAllData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const teacherProfiles = await ctx.db.query("teacherProfiles").collect();
+    const studentProfiles = await ctx.db.query("studentProfiles").collect();
+    const studentTeachers = await ctx.db.query("studentTeachers").collect();
+
+    return {
+      users: users.map(u => ({ _id: u._id, email: u.email, name: u.name, role: u.role })),
+      teacherProfiles: teacherProfiles.map(t => ({ _id: t._id, userId: t.userId })),
+      studentProfiles: studentProfiles.map(s => ({ _id: s._id, userId: s.userId })),
+      studentTeachers,
+    };
+  },
+});
+
+// Promote a user to SUPER_ADMIN by email
+export const promoteToAdmin = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+
+    if (!user) {
+      console.log(`User not found: ${args.email}`);
+      return { success: false, error: "User not found" };
+    }
+
+    await ctx.db.patch(user._id, {
+      role: "SUPER_ADMIN",
+      updatedAt: Date.now(),
+    });
+
+    console.log(`Promoted ${args.email} to SUPER_ADMIN`);
+    return { success: true, userId: user._id };
+  },
+});
+
 // Migration helper to import data from PostgreSQL export
 // This expects data to be passed in the specific format from a PostgreSQL export
 export const importFromPostgres = internalMutation({

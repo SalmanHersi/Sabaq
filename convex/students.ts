@@ -212,7 +212,7 @@ export const create = mutation({
       name: args.name,
       role: "STUDENT",
       isActive: true,
-      centerId: user.centerId,
+      ...(user.centerId ? { centerId: user.centerId } : {}),
       createdAt: now,
       updatedAt: now,
     });

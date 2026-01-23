@@ -3,13 +3,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, GraduationCap, BookOpen, TrendingUp, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 
 export default function AdminDashboard() {
-  const stats = useQuery(api.progress.getOverallStats);
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
 
-  if (stats === undefined) {
+  const stats = useQuery(api.progress.getOverallStats, isAuthenticated ? {} : "skip");
+  const teachers = useQuery(api.teachers.list, isAuthenticated ? {} : "skip");
+
+  const loading = authLoading || stats === undefined || teachers === undefined;
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
@@ -33,10 +38,7 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-oxblood" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-navy">
-                {/* Teachers count would need a separate query */}
-                -
-              </div>
+              <div className="text-2xl font-bold text-navy">{teachers?.length || 0}</div>
               <p className="text-xs text-ink/50">Active instructors</p>
             </CardContent>
           </Card>
@@ -49,7 +51,7 @@ export default function AdminDashboard() {
               <GraduationCap className="h-4 w-4 text-sage" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-navy">{stats.totalStudents}</div>
+              <div className="text-2xl font-bold text-navy">{stats?.totalStudents || 0}</div>
               <p className="text-xs text-ink/50">Enrolled students</p>
             </CardContent>
           </Card>
@@ -61,7 +63,7 @@ export default function AdminDashboard() {
             <BookOpen className="h-4 w-4 text-gold" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-navy">{stats.todaySessions}</div>
+            <div className="text-2xl font-bold text-navy">{stats?.todaySessions || 0}</div>
             <p className="text-xs text-ink/50">Recitation sessions</p>
           </CardContent>
         </Card>
@@ -72,7 +74,7 @@ export default function AdminDashboard() {
             <TrendingUp className="h-4 w-4 text-sage" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-navy">{stats.activeStudents}</div>
+            <div className="text-2xl font-bold text-navy">{stats?.activeStudents || 0}</div>
             <p className="text-xs text-ink/50">Last 7 days</p>
           </CardContent>
         </Card>

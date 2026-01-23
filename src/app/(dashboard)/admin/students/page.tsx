@@ -1,78 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, GraduationCap, Mail, BookOpen, Loader2, Link2, Copy, Check } from "lucide-react";
-
-interface Student {
-  id: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  currentSurahId: number;
-  currentAyah: number;
-  currentStreak: number;
-  teachers: Array<{
-    teacher: {
-      user: { name: string };
-    };
-  }>;
-  _count: {
-    sessions: number;
-    assignments: number;
-  };
-}
-
-interface Teacher {
-  id: string;
-  name: string;
-  teacherProfile: {
-    id: string;
-  } | null;
-}
+import { Plus, GraduationCap, Mail, BookOpen, Loader2, UserPlus, X } from "lucide-react";
+import { Id } from "../../../../../convex/_generated/dataModel";
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const students = useQuery(api.students.list, isAuthenticated ? {} : "skip");
+  const teachers = useQuery(api.teachers.list, isAuthenticated ? {} : "skip");
+  const createStudent = useMutation(api.students.create);
+  const assignTeacher = useMutation(api.students.assignTeacher);
+  const removeTeacher = useMutation(api.students.removeTeacher);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", teacherId: "" });
   const [error, setError] = useState("");
 
-  // Login link state
-  const [generatingLink, setGeneratingLink] = useState<string | null>(null);
-  const [loginLinks, setLoginLinks] = useState<Record<string, string>>({});
-  const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
-    try {
-      const [studentsRes, teachersRes] = await Promise.all([
-        fetch("/api/students"),
-        fetch("/api/teachers")
-      ]);
-
-      if (studentsRes.ok) {
-        const data = await studentsRes.json();
-        setStudents(data);
-      }
-      if (teachersRes.ok) {
-        const data = await teachersRes.json();
-        setTeachers(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Track which student is being assigned a teacher
+  const [assigningStudent, setAssigningStudent] = useState<string | null>(null);
+  const [assigningTeacherId, setAssigningTeacherId] = useState<string>("");
+  const [assigningLoading, setAssigningLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,73 +32,58 @@ export default function StudentsPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/students", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          teacherId: formData.teacherId || undefined
-        }),
+      await createStudent({
+        name: formData.name,
+        email: formData.email,
+        teacherId: formData.teacherId ? formData.teacherId as Id<"teacherProfiles"> : undefined,
       });
-
-      if (res.ok) {
-        const newStudent = await res.json();
-        setFormData({ name: "", email: "", teacherId: "" });
-        setShowAddForm(false);
-        fetchData(); // Refresh the list
-
-        // Auto-generate login link for new student
-        generateLoginLink(newStudent.email);
-      } else {
-        const data = await res.json();
-        setError(data.error || "Failed to create student");
-      }
+      setFormData({ name: "", email: "", teacherId: "" });
+      setShowAddForm(false);
     } catch (err) {
-      setError("Failed to create student");
+      setError(err instanceof Error ? err.message : "Failed to create student");
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function generateLoginLink(email: string) {
-    setGeneratingLink(email);
+  async function handleAssignTeacher(studentId: string) {
+    if (!assigningTeacherId) return;
+
+    setAssigningLoading(true);
     try {
-      const res = await fetch("/api/auth/generate-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+      await assignTeacher({
+        studentId: studentId as Id<"studentProfiles">,
+        teacherId: assigningTeacherId as Id<"teacherProfiles">,
+        isPrimary: true,
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        setLoginLinks(prev => ({ ...prev, [email]: data.magicLink }));
-      } else {
-        const data = await res.json();
-        console.error("Failed to generate link:", data.error);
-      }
+      setAssigningStudent(null);
+      setAssigningTeacherId("");
     } catch (err) {
-      console.error("Failed to generate link:", err);
+      console.error("Failed to assign teacher:", err);
     } finally {
-      setGeneratingLink(null);
+      setAssigningLoading(false);
     }
   }
 
-  async function copyToClipboard(email: string, link: string) {
+  async function handleRemoveTeacher(studentId: string, teacherId: string) {
     try {
-      await navigator.clipboard.writeText(link);
-      setCopiedEmail(email);
-      setTimeout(() => setCopiedEmail(null), 2000);
+      await removeTeacher({
+        studentId: studentId as Id<"studentProfiles">,
+        teacherId: teacherId as Id<"teacherProfiles">,
+      });
     } catch (err) {
-      console.error("Failed to copy:", err);
+      console.error("Failed to remove teacher:", err);
     }
   }
+
+  const loading = authLoading || students === undefined || teachers === undefined;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-navy">Students</h1>
-          <p className="text-ink/60 text-sm">Manage enrolled students</p>
+          <p className="text-ink/60 text-sm">Manage enrolled students and assign teachers</p>
         </div>
         <Button
           onClick={() => setShowAddForm(!showAddForm)}
@@ -207,11 +144,11 @@ export default function StudentsPage() {
                     className="w-full px-3 py-2 border border-gold/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-oxblood/20"
                   >
                     <option value="">No teacher assigned</option>
-                    {teachers.map((teacher) => (
+                    {teachers?.map((teacher) => (
                       <option
-                        key={teacher.id}
-                        value={teacher.teacherProfile?.id || ""}
-                        disabled={!teacher.teacherProfile}
+                        key={teacher._id}
+                        value={teacher.profile?._id || ""}
+                        disabled={!teacher.profile}
                       >
                         {teacher.name}
                       </option>
@@ -246,7 +183,7 @@ export default function StudentsPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
         </div>
-      ) : students.length === 0 ? (
+      ) : !students || students.length === 0 ? (
         <Card className="border-gold/20 bg-white">
           <CardContent className="py-12 text-center">
             <GraduationCap className="h-12 w-12 mx-auto text-ink/30 mb-4" />
@@ -265,77 +202,103 @@ export default function StudentsPage() {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {students.map((student) => (
-            <Card key={student.id} className="border-gold/20 bg-white">
+          {students.filter((s): s is NonNullable<typeof s> => s !== null).map((student) => (
+            <Card key={student._id} className="border-gold/20 bg-white">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sage/10">
                     <GraduationCap className="h-7 w-7 text-sage" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-navy truncate">{student.user.name}</h3>
+                    <h3 className="font-semibold text-navy truncate">{student.user?.name}</h3>
                     <div className="flex items-center gap-1 text-sm text-ink/50 mt-1">
                       <Mail className="h-3 w-3" />
-                      <span className="truncate">{student.user.email}</span>
+                      <span className="truncate">{student.user?.email}</span>
                     </div>
-                    {student.teachers.length > 0 && (
-                      <p className="text-sm text-ink/60 mt-1">
-                        Teacher: {student.teachers[0].teacher.user.name}
-                      </p>
-                    )}
                   </div>
                 </div>
 
-                {/* Login Link Section */}
+                {/* Teacher Assignment Section */}
                 <div className="mt-4 pt-4 border-t border-gold/10">
-                  {loginLinks[student.user.email] ? (
+                  <label className="block text-xs font-medium text-ink/50 mb-2">
+                    Assigned Teacher
+                  </label>
+
+                  {"teachers" in student && Array.isArray(student.teachers) && student.teachers.length > 0 ? (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          readOnly
-                          value={loginLinks[student.user.email]}
-                          className="flex-1 text-xs px-2 py-1.5 bg-parchment border border-gold/20 rounded truncate"
-                        />
+                      {(student.teachers as any[]).map((teacher: any) => (
+                        <div
+                          key={teacher._id}
+                          className="flex items-center justify-between bg-sage/10 px-3 py-2 rounded-lg"
+                        >
+                          <span className="text-sm font-medium text-navy">
+                            {teacher.user?.name}
+                          </span>
+                          <button
+                            onClick={() => handleRemoveTeacher(student._id, teacher._id)}
+                            className="text-ink/40 hover:text-red-500 transition-colors"
+                            title="Remove teacher"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : assigningStudent === student._id ? (
+                    <div className="space-y-2">
+                      <select
+                        value={assigningTeacherId}
+                        onChange={(e) => setAssigningTeacherId(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gold/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-oxblood/20"
+                      >
+                        <option value="">Select a teacher...</option>
+                        {teachers?.map((teacher) => (
+                          <option
+                            key={teacher._id}
+                            value={teacher.profile?._id || ""}
+                            disabled={!teacher.profile}
+                          >
+                            {teacher.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAssignTeacher(student._id)}
+                          disabled={!assigningTeacherId || assigningLoading}
+                          className="bg-oxblood hover:bg-oxblood/90"
+                        >
+                          {assigningLoading && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                          Assign
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => copyToClipboard(student.user.email, loginLinks[student.user.email])}
-                          className="shrink-0"
+                          onClick={() => {
+                            setAssigningStudent(null);
+                            setAssigningTeacherId("");
+                          }}
                         >
-                          {copiedEmail === student.user.email ? (
-                            <Check className="h-3 w-3 text-sage" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
+                          Cancel
                         </Button>
                       </div>
-                      <p className="text-xs text-ink/50">
-                        Share this link with the student. Expires in 24h.
-                      </p>
                     </div>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => generateLoginLink(student.user.email)}
-                      disabled={generatingLink === student.user.email}
-                      className="w-full"
+                    <button
+                      onClick={() => setAssigningStudent(student._id)}
+                      className="flex items-center gap-2 text-sm text-oxblood hover:text-oxblood/80 font-medium"
                     >
-                      {generatingLink === student.user.email ? (
-                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                      ) : (
-                        <Link2 className="h-3 w-3 mr-2" />
-                      )}
-                      Generate Login Link
-                    </Button>
+                      <UserPlus className="h-4 w-4" />
+                      Assign Teacher
+                    </button>
                   )}
                 </div>
 
-                <div className="mt-3 flex items-center justify-between">
+                <div className="mt-3 pt-3 border-t border-gold/10 flex items-center justify-between">
                   <div className="flex items-center gap-1 text-sm text-ink/50">
                     <BookOpen className="h-3 w-3" />
-                    <span>{student._count.sessions} sessions</span>
+                    <span>{student.sessionCount} sessions</span>
                   </div>
                   <span className="text-sm text-sage font-medium">
                     {student.currentStreak} day streak

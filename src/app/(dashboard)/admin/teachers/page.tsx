@@ -1,54 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { useConvexAuth } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, UserCircle, Mail, Users, Loader2, Link2, Copy, Check } from "lucide-react";
-
-interface Teacher {
-  id: string;
-  name: string;
-  email: string;
-  isActive: boolean;
-  createdAt: string;
-  teacherProfile: {
-    specialization: string | null;
-    _count?: {
-      students: number;
-    };
-  } | null;
-}
+import { Plus, UserCircle, Mail, Users, Loader2 } from "lucide-react";
 
 export default function TeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const teachers = useQuery(api.teachers.list, isAuthenticated ? {} : "skip");
+  const createTeacher = useMutation(api.teachers.create);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", specialization: "" });
   const [error, setError] = useState("");
-
-  // Login link state
-  const [generatingLink, setGeneratingLink] = useState<string | null>(null);
-  const [loginLinks, setLoginLinks] = useState<Record<string, string>>({});
-  const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchTeachers();
-  }, []);
-
-  async function fetchTeachers() {
-    try {
-      const res = await fetch("/api/teachers");
-      if (res.ok) {
-        const data = await res.json();
-        setTeachers(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch teachers:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,63 +24,21 @@ export default function TeachersPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/teachers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      await createTeacher({
+        name: formData.name,
+        email: formData.email,
+        specialization: formData.specialization || undefined,
       });
-
-      if (res.ok) {
-        const newTeacher = await res.json();
-        setTeachers([...teachers, newTeacher]);
-        setFormData({ name: "", email: "", specialization: "" });
-        setShowAddForm(false);
-
-        // Auto-generate login link for new teacher
-        generateLoginLink(newTeacher.email);
-      } else {
-        const data = await res.json();
-        setError(data.error || "Failed to create teacher");
-      }
+      setFormData({ name: "", email: "", specialization: "" });
+      setShowAddForm(false);
     } catch (err) {
-      setError("Failed to create teacher");
+      setError(err instanceof Error ? err.message : "Failed to create teacher");
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function generateLoginLink(email: string) {
-    setGeneratingLink(email);
-    try {
-      const res = await fetch("/api/auth/generate-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setLoginLinks(prev => ({ ...prev, [email]: data.magicLink }));
-      } else {
-        const data = await res.json();
-        console.error("Failed to generate link:", data.error);
-      }
-    } catch (err) {
-      console.error("Failed to generate link:", err);
-    } finally {
-      setGeneratingLink(null);
-    }
-  }
-
-  async function copyToClipboard(email: string, link: string) {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopiedEmail(email);
-      setTimeout(() => setCopiedEmail(null), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  }
+  const loading = authLoading || teachers === undefined;
 
   return (
     <div className="space-y-6">
@@ -210,7 +136,7 @@ export default function TeachersPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
         </div>
-      ) : teachers.length === 0 ? (
+      ) : !teachers || teachers.length === 0 ? (
         <Card className="border-gold/20 bg-white">
           <CardContent className="py-12 text-center">
             <UserCircle className="h-12 w-12 mx-auto text-ink/30 mb-4" />
@@ -230,7 +156,7 @@ export default function TeachersPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {teachers.map((teacher) => (
-            <Card key={teacher.id} className="border-gold/20 bg-white">
+            <Card key={teacher._id} className="border-gold/20 bg-white">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-oxblood/10">
@@ -242,64 +168,24 @@ export default function TeachersPage() {
                       <Mail className="h-3 w-3" />
                       <span className="truncate">{teacher.email}</span>
                     </div>
-                    {teacher.teacherProfile?.specialization && (
+                    {teacher.profile?.specialization && (
                       <p className="text-sm text-ink/60 mt-1">
-                        {teacher.teacherProfile.specialization}
+                        {teacher.profile.specialization}
                       </p>
                     )}
                     <div className="flex items-center gap-1 text-sm text-sage mt-2">
                       <Users className="h-3 w-3" />
                       <span>
-                        {teacher.teacherProfile?._count?.students || 0} students
+                        {teacher.studentCount} students
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Login Link Section */}
                 <div className="mt-4 pt-4 border-t border-gold/10">
-                  {loginLinks[teacher.email] ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          readOnly
-                          value={loginLinks[teacher.email]}
-                          className="flex-1 text-xs px-2 py-1.5 bg-parchment border border-gold/20 rounded truncate"
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(teacher.email, loginLinks[teacher.email])}
-                          className="shrink-0"
-                        >
-                          {copiedEmail === teacher.email ? (
-                            <Check className="h-3 w-3 text-sage" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-ink/50">
-                        Share this link with the teacher to let them sign in. Expires in 24h.
-                      </p>
-                    </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => generateLoginLink(teacher.email)}
-                      disabled={generatingLink === teacher.email}
-                      className="w-full"
-                    >
-                      {generatingLink === teacher.email ? (
-                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                      ) : (
-                        <Link2 className="h-3 w-3 mr-2" />
-                      )}
-                      Generate Login Link
-                    </Button>
-                  )}
+                  <p className="text-xs text-ink/50">
+                    Teacher can sign up with their email at the login page.
+                  </p>
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">

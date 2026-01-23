@@ -73,6 +73,12 @@ const navItems: NavItem[] = [
     roles: ["TEACHER"],
   },
   {
+    title: "Assignments",
+    href: "/teacher/assignments",
+    icon: ClipboardList,
+    roles: ["TEACHER"],
+  },
+  {
     title: "Sessions",
     href: "/teacher/sessions",
     icon: BookOpen,

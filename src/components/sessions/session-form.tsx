@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { SurahSelector } from "@/components/quran/surah-selector";
 import { MushafSessionViewer, type MistakeDetail } from "@/components/quran/mushaf-session-viewer";
 import { Button } from "@/components/ui/button";
@@ -32,6 +35,8 @@ interface SessionFormProps {
 
 export function SessionForm({ studentId, studentName, onSuccess, continueFrom }: SessionFormProps) {
   const router = useRouter();
+  const createSession = useMutation(api.sessions.create);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -46,6 +51,12 @@ export function SessionForm({ studentId, studentName, onSuccess, continueFrom }:
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showQuranViewer, setShowQuranViewer] = useState(false);
   const [mistakeDetails, setMistakeDetails] = useState<MistakeDetail[]>([]);
+
+  // Get surah data for continueFrom
+  const continueFromSurah = useQuery(
+    api.quran.getSurah,
+    continueFrom ? { surahNumber: continueFrom.surahId } : "skip"
+  );
 
   // Initialize from continueFrom prop if provided
   useEffect(() => {
@@ -63,6 +74,20 @@ export function SessionForm({ studentId, studentName, onSuccess, continueFrom }:
     setMistakeCount(0);
   };
 
+  const handleContinueFrom = () => {
+    if (continueFromSurah && continueFrom) {
+      setSelectedSurah({
+        id: continueFromSurah.surahNumber,
+        nameArabic: continueFromSurah.nameArabic,
+        nameEnglish: continueFromSurah.nameEnglish,
+        nameTranslit: continueFromSurah.nameTranslit,
+        totalAyahs: continueFromSurah.totalAyahs,
+      });
+      setStartAyah(continueFrom.startAyah);
+      setEndAyah(continueFrom.endAyah);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSurah) {
@@ -78,25 +103,17 @@ export function SessionForm({ studentId, studentName, onSuccess, continueFrom }:
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId,
-          surahId: selectedSurah.id,
-          startAyah,
-          endAyah,
-          isPassed,
-          mistakeCount,
-          sessionType,
-          notes: notes || undefined,
-        }),
+      await createSession({
+        studentId: studentId as Id<"studentProfiles">,
+        surahNumber: selectedSurah.id,
+        startAyah,
+        endAyah,
+        isPassed,
+        mistakeCount,
+        mistakeDetails: mistakeDetails.length > 0 ? mistakeDetails : undefined,
+        sessionType,
+        notes: notes || undefined,
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to record session");
-      }
 
       setSuccess(true);
       setTimeout(() => {
@@ -144,19 +161,10 @@ export function SessionForm({ studentId, studentName, onSuccess, continueFrom }:
           )}
 
           {/* Continue From Suggestion */}
-          {continueFrom && !selectedSurah && (
+          {continueFrom && !selectedSurah && continueFromSurah && (
             <button
               type="button"
-              onClick={() => {
-                // Trigger surah fetch and set
-                fetch(`/api/surahs/${continueFrom.surahId}`)
-                  .then(res => res.json())
-                  .then(surah => {
-                    setSelectedSurah(surah);
-                    setStartAyah(continueFrom.startAyah);
-                    setEndAyah(continueFrom.endAyah);
-                  });
-              }}
+              onClick={handleContinueFrom}
               className="w-full p-4 text-left border-2 border-dashed border-oxblood/30 rounded-lg hover:border-oxblood hover:bg-oxblood/5 transition-colors"
             >
               <div className="flex items-center justify-between">
