@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
   Loader2,
@@ -99,6 +99,7 @@ const getSurahPageRange = (surahId: number): { start: number; end: number; total
   return { start, end, total: end - start + 1 };
 };
 
+
 interface MushafSessionViewerProps {
   surahId: number;
   startAyah?: number | null;
@@ -139,7 +140,7 @@ export function MushafSessionViewer({
   fontVersion = "v1",
 }: MushafSessionViewerProps) {
   const [pageData, setPageData] = useState<MushafPageData | null>(null);
-  const [currentPageNumber, setCurrentPageNumber] = useState<number>(SURAH_START_PAGES[surahId] || 1);
+  const [currentPageNumber, setCurrentPageNumber] = useState<number | null>(null); // Start as null until determined
   const [loading, setLoading] = useState(true);
   const [fontLoaded, setFontLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,52 +149,137 @@ export function MushafSessionViewer({
   );
   const [selectionState, setSelectionState] = useState<"idle" | "selecting">("idle");
   const [tempStartAyah, setTempStartAyah] = useState<number | null>(null);
+  const [pageNumberLoading, setPageNumberLoading] = useState(true); // Track if we're still determining page number
+
+  // Track which pages the selection spans (start and end pages)
+  const [selectionPageRange, setSelectionPageRange] = useState<{ startPage: number | null; endPage: number | null }>({
+    startPage: null,
+    endPage: null,
+  });
 
   const hasSelection = startAyah != null && endAyah != null && startAyah > 0 && endAyah > 0;
 
-  // Reset page when surah changes
-  useEffect(() => {
-    setCurrentPageNumber(SURAH_START_PAGES[surahId] || 1);
-  }, [surahId]);
+  // Track previous surah to detect surah changes
+  const prevSurahIdRef = useRef<number | null>(null);
+  // Track the initial startAyah when surah changes (for one-time navigation)
+  const initialStartAyahRef = useRef<number | null>(null);
+  const hasNavigatedRef = useRef(false);
 
-  // Load font
-  const loadFont = useCallback(async () => {
-    try {
-      await loadPageFont(currentPageNumber, fontVersion);
-      setFontLoaded(true);
-      const adjacent = [currentPageNumber - 1, currentPageNumber + 1].filter(
-        (p) => p >= 1 && p <= 604
-      );
-      preloadPageFonts(adjacent, fontVersion);
-    } catch {
-      setFontLoaded(true);
+  // Determine the correct page number FIRST, before loading any page data
+  useEffect(() => {
+    const surahChanged = prevSurahIdRef.current !== surahId;
+
+    if (surahChanged) {
+      prevSurahIdRef.current = surahId;
+      initialStartAyahRef.current = startAyah ?? null;
+      hasNavigatedRef.current = false;
+      setSelectionPageRange({ startPage: null, endPage: null });
+      setPageNumberLoading(true); // Reset loading state
+      setCurrentPageNumber(null); // Reset page number
     }
-  }, [currentPageNumber, fontVersion]);
 
-  // Fetch page data
+    // Only navigate once per surah change, using the initial startAyah
+    if (!hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      const ayahToNavigate = initialStartAyahRef.current;
+
+      if (ayahToNavigate && ayahToNavigate > 1) {
+        // Fetch the exact page number for this ayah from quran.com API
+        setPageNumberLoading(true);
+        const verseKey = `${surahId}:${ayahToNavigate}`;
+        fetch(`https://api.quran.com/api/v4/verses/by_key/${verseKey}?fields=page_number`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.verse?.page_number) {
+              setCurrentPageNumber(data.verse.page_number);
+            } else {
+              setCurrentPageNumber(SURAH_START_PAGES[surahId] || 1);
+            }
+          })
+          .catch(() => {
+            setCurrentPageNumber(SURAH_START_PAGES[surahId] || 1);
+          })
+          .finally(() => {
+            setPageNumberLoading(false);
+          });
+      } else {
+        // No startAyah or ayah 1, go to surah's first page
+        setCurrentPageNumber(SURAH_START_PAGES[surahId] || 1);
+        setPageNumberLoading(false);
+      }
+    }
+  }, [surahId, startAyah]);
+
+  // Load font for a specific page
+  const loadFontForPage = useCallback(async (pageNum: number) => {
+    try {
+      await loadPageFont(pageNum, fontVersion);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [fontVersion]);
+
+  // Fetch page data - only when page number is determined
   useEffect(() => {
+    // Don't load until we know which page to load
+    if (currentPageNumber === null || pageNumberLoading) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    setFontLoaded(isFontLoaded(currentPageNumber, fontVersion));
-    loadFont();
+    setFontLoaded(false);
 
-    fetch(`/api/quran/pages/${currentPageNumber}`)
+    // Load both font and page data in parallel, but wait for both
+    const fontPromise = loadFontForPage(currentPageNumber);
+    const dataPromise = fetch(`/api/quran/pages/${currentPageNumber}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.error) throw new Error(data.error);
+        return data;
+      });
+
+    Promise.all([fontPromise, dataPromise])
+      .then(([fontSuccess, data]) => {
         setPageData(data);
+        setFontLoaded(true); // Font loaded (or fallback)
         setLoading(false);
+
+        // Preload adjacent pages in background
+        const adjacent = [currentPageNumber - 1, currentPageNumber + 1].filter(
+          (p) => p >= 1 && p <= 604
+        );
+        preloadPageFonts(adjacent, fontVersion);
       })
       .catch((err) => {
         setError(err.message || "Failed to load page");
         setLoading(false);
       });
-  }, [currentPageNumber, fontVersion, loadFont]);
+  }, [currentPageNumber, pageNumberLoading, fontVersion, loadFontForPage]);
 
   // Check if ayah is in selection range
   const isInRange = (ayahNum: number, chapterId: number): boolean => {
     if (!hasSelection || chapterId !== surahId) return false;
     return ayahNum >= startAyah! && ayahNum <= endAyah!;
+  };
+
+  // Check if a page is within the selection page range
+  const pageIsInSelectionRange = (pageNum: number): boolean => {
+    const { startPage, endPage } = selectionPageRange;
+    if (!hasSelection || startPage === null || endPage === null) return false;
+
+    const minPage = Math.min(startPage, endPage);
+    const maxPage = Math.max(startPage, endPage);
+
+    return pageNum >= minPage && pageNum <= maxPage;
+  };
+
+  // Get the number of pages in the selection
+  const getSelectionPageCount = (): number => {
+    const { startPage, endPage } = selectionPageRange;
+    if (startPage === null || endPage === null) return 0;
+    return Math.abs(endPage - startPage) + 1;
   };
 
   // Handle word click
@@ -210,10 +296,12 @@ export function MushafSessionViewer({
       if (selectionState === "idle") {
         setTempStartAyah(ayahNum);
         setSelectionState("selecting");
+        setSelectionPageRange({ startPage: currentPageNumber, endPage: currentPageNumber });
         onRangeChange?.(ayahNum, ayahNum);
       } else {
         const start = Math.min(tempStartAyah!, ayahNum);
         const end = Math.max(tempStartAyah!, ayahNum);
+        setSelectionPageRange(prev => ({ ...prev, endPage: currentPageNumber }));
         onRangeChange?.(start, end);
         setSelectionState("idle");
         setTempStartAyah(null);
@@ -266,10 +354,12 @@ export function MushafSessionViewer({
       if (selectionState === "idle") {
         setTempStartAyah(ayahNum);
         setSelectionState("selecting");
+        setSelectionPageRange({ startPage: currentPageNumber, endPage: currentPageNumber });
         onRangeChange?.(ayahNum, ayahNum);
       } else {
         const start = Math.min(tempStartAyah!, ayahNum);
         const end = Math.max(tempStartAyah!, ayahNum);
+        setSelectionPageRange(prev => ({ ...prev, endPage: currentPageNumber }));
         onRangeChange?.(start, end);
         setSelectionState("idle");
         setTempStartAyah(null);
@@ -320,14 +410,15 @@ export function MushafSessionViewer({
     return mistakeDetails.some((m) => m.ayah === ayahNum && !m.wordIndex && m.type === "FORGOT_AYAH");
   };
 
-  const fontFamily = getFontFamily(currentPageNumber, fontVersion);
+  const fontFamily = currentPageNumber ? getFontFamily(currentPageNumber, fontVersion) : "";
 
   // Navigation
   const goToPage = (page: number) => {
     if (page >= 1 && page <= 604) setCurrentPageNumber(page);
   };
 
-  if (loading || !fontLoaded) {
+  // Show loading if: determining page number, loading page data, or loading font
+  if (pageNumberLoading || loading || !fontLoaded || currentPageNumber === null) {
     return (
       <div className="flex items-center justify-center bg-[#fffef5] rounded-lg border min-h-[300px] sm:min-h-[400px] md:min-h-[500px]">
         <div className="text-center space-y-2 sm:space-y-3">
@@ -407,9 +498,16 @@ export function MushafSessionViewer({
       {hasSelection && (
         <div className="bg-sky-50/70 p-2 sm:p-3 rounded-lg border border-sky-200">
           <div className="flex items-center justify-between text-xs sm:text-sm text-sky-700 flex-wrap gap-1">
-            <span>
-              Selected: Verses {startAyah} - {endAyah} ({endAyah! - startAyah! + 1} verses)
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span>
+                Selected: Verses {startAyah} - {endAyah} ({endAyah! - startAyah! + 1} verses)
+              </span>
+              {getSelectionPageCount() > 1 && (
+                <span className="text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">
+                  {getSelectionPageCount()} pages
+                </span>
+              )}
+            </div>
             {mistakeDetails.length > 0 && (
               <span className="text-red-600 font-medium">
                 {mistakeDetails.length} mistake{mistakeDetails.length !== 1 ? "s" : ""}
@@ -442,23 +540,23 @@ export function MushafSessionViewer({
 
       {/* Mushaf Page */}
       <div
-        className="mushaf-page bg-[#fffef5] border border-stone-300 rounded-lg shadow-xl overflow-hidden"
+        className="mushaf-page bg-[#fffef5] border border-stone-300 rounded-lg shadow-xl overflow-x-auto"
         style={{ containerType: "inline-size" }}
         dir="rtl"
         translate="no"
       >
         <div className="h-1 sm:h-2 bg-gradient-to-r from-stone-300 via-amber-200 to-stone-300" />
 
-        <div className="px-2 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
+        <div className="px-1 py-3 sm:px-4 sm:py-6 md:px-6 md:py-8">
           <div className="mushaf-lines space-y-0">
             {pageData.lines.map((line) => (
               <div
                 key={line.lineNumber}
-                className="mushaf-line flex justify-center items-baseline"
+                className="mushaf-line flex justify-center items-baseline flex-wrap"
                 style={{
                   fontFamily: `"${fontFamily}", "KFGQPC Uthmanic Script HAFS", serif`,
-                  fontSize: "clamp(1.4rem, 5cqi, 2.6rem)",
-                  lineHeight: "2",
+                  fontSize: "clamp(1.15rem, 4.5cqi, 2.5rem)",
+                  lineHeight: "2.1",
                 }}
               >
                 {line.words.map((word, idx) => {
@@ -592,17 +690,24 @@ export function MushafSessionViewer({
                 {Array.from({ length: surahPages.total }, (_, i) => {
                   const pageNum = surahPages.start + i;
                   const isActive = pageNum === currentPageNumber;
+                  const isInSelectionRange = pageIsInSelectionRange(pageNum);
+
                   return (
                     <button
                       key={pageNum}
                       type="button"
                       onClick={() => goToPage(pageNum)}
                       className={cn(
-                        "min-w-[28px] h-7 px-1.5 sm:min-w-[32px] sm:h-8 sm:px-2 rounded text-xs sm:text-sm font-medium transition-colors",
+                        "min-w-[28px] h-7 px-1.5 sm:min-w-[32px] sm:h-8 sm:px-2 rounded text-xs sm:text-sm font-medium transition-all duration-200",
                         isActive
-                          ? "bg-stone-700 text-white"
-                          : "bg-white border border-stone-300 text-stone-600 hover:bg-stone-200"
+                          ? isInSelectionRange
+                            ? "bg-sky-600 text-white shadow-md ring-2 ring-sky-300"
+                            : "bg-stone-700 text-white shadow-md"
+                          : isInSelectionRange
+                            ? "bg-sky-100 border-2 border-sky-400 text-sky-700 hover:bg-sky-200 shadow-sm"
+                            : "bg-white border border-stone-300 text-stone-600 hover:bg-stone-200"
                       )}
+                      title={isInSelectionRange ? `Page ${i + 1} - In selection range` : `Go to page ${i + 1}`}
                     >
                       {i + 1}
                     </button>
@@ -620,6 +725,10 @@ export function MushafSessionViewer({
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-sky-100" />
             <span>Selected</span>
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-sky-100 border-2 border-sky-400" />
+            <span>Page w/ selection</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-red-200/60" />

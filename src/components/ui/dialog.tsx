@@ -26,14 +26,14 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
 
   return (
     <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
+      {/* Backdrop - hidden on mobile since modal is fullscreen */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm hidden sm:block"
         onClick={() => onOpenChange(false)}
       />
-      {/* Content */}
-      <div className="fixed inset-0 overflow-y-auto">
-        <div className="flex min-h-full items-center justify-center p-4">
+      {/* Content wrapper */}
+      <div className="fixed inset-0 sm:overflow-y-auto">
+        <div className="min-h-full sm:flex sm:items-center sm:justify-center sm:p-4">
           {children}
         </div>
       </div>
@@ -51,7 +51,11 @@ export function DialogContent({ children, className, onClose }: DialogContentPro
   return (
     <div
       className={cn(
-        "relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto",
+        "relative bg-white shadow-xl overflow-y-auto",
+        // Mobile: full screen
+        "w-full h-[100dvh] max-h-[100dvh] rounded-none",
+        // Desktop: large modal that takes most of the screen
+        "sm:w-[92vw] sm:max-w-5xl sm:h-[85vh] sm:max-h-[85vh] sm:rounded-2xl",
         className
       )}
       onClick={(e) => e.stopPropagation()}
@@ -59,7 +63,7 @@ export function DialogContent({ children, className, onClose }: DialogContentPro
       {onClose && (
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 p-2 rounded-full hover:bg-cream transition-colors z-10"
+          className="absolute right-3 top-3 sm:right-4 sm:top-4 p-2 rounded-full hover:bg-cream transition-colors z-10"
         >
           <X className="h-5 w-5 text-ink/50" />
         </button>

@@ -1,3 +1,6 @@
+/* Import warm, friendly fonts - must be first */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Quicksand:wght@400;500;600;700&display=swap');
+
 @import "tailwindcss";
 
 /* Brand Colors CSS Variables */
@@ -12,6 +15,20 @@
 
   --background: var(--parchment);
   --foreground: var(--ink);
+
+  /* Typography scale - warm & friendly */
+  --font-display: 'Quicksand', 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+
+  /* Refined shadows */
+  --shadow-subtle: 0 1px 2px rgba(26, 26, 26, 0.04);
+  --shadow-card: 0 2px 8px rgba(26, 26, 26, 0.06), 0 1px 2px rgba(26, 26, 26, 0.04);
+  --shadow-elevated: 0 8px 24px rgba(26, 26, 26, 0.08), 0 2px 8px rgba(26, 26, 26, 0.04);
+  --shadow-glow: 0 0 0 1px rgba(197, 160, 101, 0.1), 0 4px 16px rgba(197, 160, 101, 0.08);
+
+  /* Animation timing */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @theme inline {
@@ -25,12 +42,102 @@
   --color-gold: var(--gold);
   --color-sage: var(--sage);
   --font-sans: var(--font-inter);
+  --font-display: 'Quicksand', 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle background texture for depth */
+.bg-textured {
+  background-image:
+    radial-gradient(ellipse at 20% 30%, rgba(197, 160, 101, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(140, 74, 69, 0.02) 0%, transparent 50%);
+}
+
+/* Display headings with friendly rounded font */
+.heading-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+/* Smooth page transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s var(--ease-out-expo) forwards;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.5s var(--ease-out-expo) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s var(--ease-out-expo) forwards;
+}
+
+/* Staggered animation delays for lists */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Refined hover lift effect */
+.hover-lift {
+  transition: transform 0.2s var(--ease-out-expo), box-shadow 0.2s var(--ease-out-expo);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Glow effect for interactive elements */
+.glow-gold {
+  transition: box-shadow 0.3s var(--ease-in-out-smooth);
+}
+
+.glow-gold:hover {
+  box-shadow: var(--shadow-glow);
+}
+
+/* Decorative border accent */
+.border-accent {
+  position: relative;
+}
+
+.border-accent::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.4;
 }
 
 /* Quran Mushaf styling - Responsive like Quran.com */

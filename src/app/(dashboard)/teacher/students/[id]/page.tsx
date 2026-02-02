@@ -9,6 +9,7 @@ import { SessionForm } from "@/components/sessions/session-form";
 import { SessionList } from "@/components/sessions/session-list";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Loader2 } from "lucide-react";
+import { type MistakeDetail } from "@/components/quran/mushaf-session-viewer";
 
 export default function StudentDetailPage() {
   const params = useParams();
@@ -53,6 +54,82 @@ export default function StudentDetailPage() {
       </div>
     );
   }
+
+  const encodedStudentName = encodeURIComponent(student.user?.name || "Student");
+
+  // Get the last session (first in the array since it's sorted by date desc)
+  const lastSessionRaw = sessions?.[0];
+
+  // Build last session data for the form
+  const lastSession = lastSessionRaw ? {
+    surahId: lastSessionRaw.surahNumber,
+    surahName: lastSessionRaw.surah?.nameEnglish || "Unknown",
+    surahNameArabic: lastSessionRaw.surah?.nameArabic || "",
+    startAyah: lastSessionRaw.startAyah,
+    endAyah: lastSessionRaw.endAyah,
+    totalAyahs: lastSessionRaw.surah?.totalAyahs || 0,
+    isPassed: lastSessionRaw.isPassed,
+    mistakeCount: lastSessionRaw.mistakeCount,
+    mistakeDetails: lastSessionRaw.mistakeDetails as MistakeDetail[] | undefined,
+    sessionType: lastSessionRaw.sessionType,
+    sessionDate: new Date(lastSessionRaw.sessionDate).toISOString(),
+  } : undefined;
+
+  // Calculate smart suggestion based on last session
+  const continueFrom = lastSessionRaw ? (() => {
+    const surahTotalAyahs = lastSessionRaw.surah?.totalAyahs || 0;
+
+    if (!lastSessionRaw.isPassed) {
+      // Failed: suggest re-test with same verses
+      return {
+        surahId: lastSessionRaw.surahNumber,
+        surahName: lastSessionRaw.surah?.nameEnglish || "Unknown",
+        startAyah: lastSessionRaw.startAyah,
+        endAyah: lastSessionRaw.endAyah,
+        sessionType: "RE_TEST" as const,
+        isRetest: true,
+      };
+    } else {
+      // Passed: suggest next starting point (just the first ayah, not a range)
+      const nextStartAyah = lastSessionRaw.endAyah + 1;
+
+      // Check if there are more verses in this surah
+      if (nextStartAyah <= surahTotalAyahs) {
+        // Continue in the same surah, starting from the next ayah
+        return {
+          surahId: lastSessionRaw.surahNumber,
+          surahName: lastSessionRaw.surah?.nameEnglish || "Unknown",
+          startAyah: nextStartAyah,
+          sessionType: "NEW_MEMORIZATION" as const,
+          isRetest: false,
+        };
+      } else {
+        // Surah completed - suggest the next surah starting from ayah 1
+        const nextSurahNumber = lastSessionRaw.surahNumber + 1;
+
+        if (nextSurahNumber <= 114) {
+          // Move to the next surah
+          return {
+            surahId: nextSurahNumber,
+            surahName: "", // Will be fetched by the form
+            startAyah: 1,
+            sessionType: "NEW_MEMORIZATION" as const,
+            isRetest: false,
+            isNextSurah: true, // Flag to indicate surah name needs to be fetched
+          };
+        } else {
+          // Completed all 114 surahs - suggest revision from surah 1
+          return {
+            surahId: 1,
+            surahName: "Al-Fatihah",
+            startAyah: 1,
+            sessionType: "REVISION" as const,
+            isRetest: false,
+          };
+        }
+      }
+    }
+  })() : undefined;
 
   // Transform sessions to match SessionList expected format
   const formattedSessions = sessions?.map((session) => ({
@@ -113,6 +190,8 @@ export default function StudentDetailPage() {
           <SessionForm
             studentId={student._id}
             studentName={student.user?.name || "Student"}
+            lastSession={lastSession}
+            continueFrom={continueFrom}
           />
         </div>
 
@@ -121,6 +200,9 @@ export default function StudentDetailPage() {
           sessions={formattedSessions}
           title="Recent Sessions"
           emptyMessage="No sessions recorded yet."
+          getDetailHref={(session) =>
+            `/teacher/sessions/${session.id}?studentId=${studentId}&studentName=${encodedStudentName}`
+          }
         />
       </div>
     </div>

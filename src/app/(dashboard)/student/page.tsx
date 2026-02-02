@@ -4,7 +4,7 @@ import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { QuranProgressGrid } from "@/components/progress/quran-progress-grid";
 import { SessionList } from "@/components/sessions/session-list";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 export default function StudentDashboard() {
@@ -21,7 +21,10 @@ export default function StudentDashboard() {
   if (authLoading || userLoading || sessions === undefined) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
+          <p className="text-sm text-ink/50">Loading your progress...</p>
+        </div>
       </div>
     );
   }
@@ -58,22 +61,33 @@ export default function StudentDashboard() {
   })) || [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-navy">My Progress</h1>
-        <p className="text-ink/60 text-sm">Track your Quran memorization journey</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-gold" />
+          <p className="text-sm font-medium text-gold">Your Journey</p>
+        </div>
+        <h1 className="text-3xl font-bold text-navy font-[family-name:var(--font-display)] tracking-tight">
+          My Progress
+        </h1>
+        <p className="text-ink/55">Track your Quran memorization journey</p>
       </div>
 
       {/* Progress Grid */}
-      <QuranProgressGrid studentId={studentProfileId} />
+      <div className="animate-fade-in" style={{ animationDelay: "0.1s" }}>
+        <QuranProgressGrid studentId={studentProfileId} />
+      </div>
 
       {/* Recent Sessions */}
-      <SessionList
-        sessions={formattedSessions}
-        showTeacher={true}
-        title="Recent Sessions"
-        emptyMessage="No sessions recorded yet. Start memorizing to see your progress!"
-      />
+      <div className="animate-slide-in-up" style={{ animationDelay: "0.2s" }}>
+        <SessionList
+          sessions={formattedSessions}
+          title="Recent Sessions"
+          emptyMessage="No sessions recorded yet. Start memorizing to see your progress!"
+          detailHrefBase="/student/history"
+        />
+      </div>
     </div>
   );
 }
