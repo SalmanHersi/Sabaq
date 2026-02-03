@@ -88,7 +88,9 @@ export default function TeacherSessionsPage() {
       },
     })) || [];
 
-  const studentOptions = (students ?? []).filter((student) => student && student._id);
+  const studentOptions = (students ?? []).filter(
+    (student): student is NonNullable<typeof student> => Boolean(student && student._id)
+  );
 
   const selectedStudentName =
     studentFilter === "all"

@@ -159,6 +159,34 @@ export function MushafSessionViewer({
 
   const hasSelection = startAyah != null && endAyah != null && startAyah > 0 && endAyah > 0;
 
+  useEffect(() => {
+    if (mode === "view" || currentMode !== "select") return;
+
+    if (!hasSelection) {
+      setSelectionState("idle");
+      setTempStartAyah(null);
+      setSelectionPageRange({ startPage: null, endPage: null });
+      return;
+    }
+
+    if (startAyah === endAyah) {
+      setSelectionState("selecting");
+      setTempStartAyah(startAyah ?? null);
+      if (currentPageNumber !== null) {
+        setSelectionPageRange((prev) => {
+          if (prev.startPage === null && prev.endPage === null) {
+            return { startPage: currentPageNumber, endPage: currentPageNumber };
+          }
+          return prev;
+        });
+      }
+      return;
+    }
+
+    setSelectionState("idle");
+    setTempStartAyah(null);
+  }, [currentMode, mode, hasSelection, startAyah, endAyah, currentPageNumber]);
+
   // Track previous surah to detect surah changes
   const prevSurahIdRef = useRef<number | null>(null);
   // Track the initial startAyah when surah changes (for one-time navigation)
