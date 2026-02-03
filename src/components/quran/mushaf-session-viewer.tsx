@@ -321,15 +321,26 @@ export function MushafSessionViewer({
     if (chapterId !== surahId) return;
 
     if (currentMode === "select") {
-      if (selectionState === "idle") {
+      const hasPresetStart =
+        selectionState === "idle" &&
+        hasSelection &&
+        startAyah != null &&
+        endAyah != null &&
+        startAyah === endAyah;
+
+      if (selectionState === "idle" && !hasPresetStart) {
         setTempStartAyah(ayahNum);
         setSelectionState("selecting");
         setSelectionPageRange({ startPage: currentPageNumber, endPage: currentPageNumber });
         onRangeChange?.(ayahNum, ayahNum);
       } else {
-        const start = Math.min(tempStartAyah!, ayahNum);
-        const end = Math.max(tempStartAyah!, ayahNum);
-        setSelectionPageRange(prev => ({ ...prev, endPage: currentPageNumber }));
+        const baseStart = hasPresetStart ? startAyah! : tempStartAyah!;
+        const start = Math.min(baseStart, ayahNum);
+        const end = Math.max(baseStart, ayahNum);
+        setSelectionPageRange((prev) => ({
+          startPage: prev.startPage ?? currentPageNumber,
+          endPage: currentPageNumber,
+        }));
         onRangeChange?.(start, end);
         setSelectionState("idle");
         setTempStartAyah(null);
@@ -379,15 +390,26 @@ export function MushafSessionViewer({
     if (chapterId !== surahId) return;
 
     if (currentMode === "select") {
-      if (selectionState === "idle") {
+      const hasPresetStart =
+        selectionState === "idle" &&
+        hasSelection &&
+        startAyah != null &&
+        endAyah != null &&
+        startAyah === endAyah;
+
+      if (selectionState === "idle" && !hasPresetStart) {
         setTempStartAyah(ayahNum);
         setSelectionState("selecting");
         setSelectionPageRange({ startPage: currentPageNumber, endPage: currentPageNumber });
         onRangeChange?.(ayahNum, ayahNum);
       } else {
-        const start = Math.min(tempStartAyah!, ayahNum);
-        const end = Math.max(tempStartAyah!, ayahNum);
-        setSelectionPageRange(prev => ({ ...prev, endPage: currentPageNumber }));
+        const baseStart = hasPresetStart ? startAyah! : tempStartAyah!;
+        const start = Math.min(baseStart, ayahNum);
+        const end = Math.max(baseStart, ayahNum);
+        setSelectionPageRange((prev) => ({
+          startPage: prev.startPage ?? currentPageNumber,
+          endPage: currentPageNumber,
+        }));
         onRangeChange?.(start, end);
         setSelectionState("idle");
         setTempStartAyah(null);
