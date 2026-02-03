@@ -58,7 +58,7 @@ export default function TeachersPage() {
 
       {/* Add Teacher Form */}
       {showAddForm && (
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardHeader>
             <CardTitle className="text-navy">Add New Teacher</CardTitle>
           </CardHeader>
@@ -137,7 +137,7 @@ export default function TeachersPage() {
           <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
         </div>
       ) : !teachers || teachers.length === 0 ? (
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="py-12 text-center">
             <UserCircle className="h-12 w-12 mx-auto text-ink/30 mb-4" />
             <h3 className="text-lg font-medium text-navy mb-2">No teachers yet</h3>
@@ -156,7 +156,7 @@ export default function TeachersPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {teachers.map((teacher) => (
-            <Card key={teacher._id} className="border-gold/20 bg-white">
+            <Card key={teacher._id} className="">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-oxblood/10">

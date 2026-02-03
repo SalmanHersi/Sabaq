@@ -27,7 +27,7 @@ export function StreakDisplay({
   };
 
   return (
-    <Card className="border-gold/20 bg-gradient-to-br from-cream to-white">
+    <Card className="">
       <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           {/* Current Streak */}

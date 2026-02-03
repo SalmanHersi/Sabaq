@@ -47,7 +47,7 @@ export default function ParentDashboard() {
       </div>
 
       {!children || children.length === 0 ? (
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-navy">
               <Users className="h-5 w-5 text-oxblood" />
@@ -65,7 +65,7 @@ export default function ParentDashboard() {
         <>
           {/* Child Selector */}
           {children.length > 1 && (
-            <Card className="border-gold/20 bg-white">
+            <Card className="">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-ink/70">Select Child</CardTitle>
               </CardHeader>
@@ -104,7 +104,7 @@ export default function ParentDashboard() {
 
               {/* Progress Stats */}
               <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                <Card className="border-gold/20 bg-white">
+                <Card className="">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-ink/70">Total Sessions</CardTitle>
                     <BookOpen className="h-4 w-4 text-sage" />
@@ -117,7 +117,7 @@ export default function ParentDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-gold/20 bg-white">
+                <Card className="">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-ink/70">Verses Memorized</CardTitle>
                     <Flame className="h-4 w-4 text-oxblood" />
@@ -130,7 +130,7 @@ export default function ParentDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-gold/20 bg-white">
+                <Card className="">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-ink/70">Surahs Complete</CardTitle>
                     <Award className="h-4 w-4 text-gold" />
@@ -143,7 +143,7 @@ export default function ParentDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-gold/20 bg-white">
+                <Card className="">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-ink/70">Milestones</CardTitle>
                     <Award className="h-4 w-4 text-sage" />
@@ -159,7 +159,7 @@ export default function ParentDashboard() {
 
               {/* Last Session */}
               {childSummary.recentSessions.length > 0 && (
-                <Card className="border-gold/20 bg-white">
+                <Card className="">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-navy">
                       <Calendar className="h-5 w-5 text-gold" />
@@ -215,7 +215,7 @@ export default function ParentDashboard() {
               />
             </>
           ) : (
-            <Card className="border-gold/20 bg-white">
+            <Card className="">
               <CardContent className="py-8 text-center">
                 <p className="text-ink/50">Unable to load child data</p>
               </CardContent>

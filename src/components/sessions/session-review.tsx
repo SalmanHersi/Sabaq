@@ -101,7 +101,7 @@ export function SessionReview({
         {backLabel}
       </Link>
 
-      <Card className="relative overflow-hidden border-gold/20 bg-parchment/60">
+      <Card className="relative overflow-hidden bg-parchment/60">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-gold/20 via-gold/70 to-gold/20" />
         <CardContent className="p-6 sm:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">

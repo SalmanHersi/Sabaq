@@ -2,9 +2,15 @@
 
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpen, ClipboardList, Plus, Loader2, ArrowRight, TrendingUp } from "lucide-react";
+import {
+  Users,
+  BookOpen,
+  ClipboardList,
+  ChevronRight,
+  TrendingUp,
+  Loader2,
+} from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +27,14 @@ export default function TeacherDashboard() {
 
   // Calculate stats
   const studentCount = students?.length || 0;
+  const totalSessions = sessions?.length || 0;
+  const passedSessions = sessions?.filter(s => s.isPassed).length || 0;
 
-  // Count today's sessions
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayMs = today.getTime();
-  const sessionsToday = sessions?.filter(s => s.sessionDate >= todayMs).length || 0;
+  // Count this week's sessions
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekAgoMs = weekAgo.getTime();
+  const sessionsThisWeek = sessions?.filter(s => s.sessionDate >= weekAgoMs).length || 0;
 
   if (loading) {
     return (
@@ -39,181 +47,238 @@ export default function TeacherDashboard() {
     );
   }
 
-  const stats = [
-    {
-      title: "My Students",
-      value: studentCount,
-      subtitle: "Assigned to you",
-      icon: Users,
-      iconColor: "text-oxblood",
-      iconBg: "bg-oxblood/10",
-      trend: null,
-    },
-    {
-      title: "Sessions Today",
-      value: sessionsToday,
-      subtitle: "Recitations recorded",
-      icon: BookOpen,
-      iconColor: "text-sage",
-      iconBg: "bg-sage/10",
-      trend: sessionsToday > 0 ? "+active" : null,
-    },
-    {
-      title: "Total Sessions",
-      value: sessions?.length || 0,
-      subtitle: "All time",
-      icon: ClipboardList,
-      iconColor: "text-gold",
-      iconBg: "bg-gold/10",
-      trend: null,
-    },
-  ];
-
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-oxblood/80">Welcome back</p>
-          <h1 className="text-3xl font-bold text-navy font-[family-name:var(--font-display)] tracking-tight">
-            Teacher Dashboard
-          </h1>
-          <p className="text-ink/55">Manage your students and track their progress</p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Welcome Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl sm:text-2xl font-semibold text-navy">
+          Welcome back!
+        </h1>
+      </div>
+
+      {/* Quick Actions - Full Width */}
+      <div className="bg-white rounded-xl border border-ink/10 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-semibold text-navy">Quick Actions</h2>
+            <p className="text-sm text-ink/50">Common tasks</p>
+          </div>
         </div>
-        <Link href="/teacher/students">
-          <Button size="lg" className="w-full sm:w-auto group">
-            <Plus className="mr-2 h-4 w-4" />
-            Record Session
-            <ArrowRight className="ml-2 h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
-          </Button>
-        </Link>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((stat, index) => (
-          <Card
-            key={stat.title}
-            className="group overflow-hidden"
-            style={{ animationDelay: `${index * 0.1}s` }}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Link
+            href="/teacher/students"
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-ink/10 hover:border-oxblood/30 hover:bg-oxblood/5 transition-colors"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-ink/60">
-                {stat.title}
-              </CardTitle>
-              <div className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110",
-                stat.iconBg
-              )}>
-                <stat.icon className={cn("h-5 w-5", stat.iconColor)} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-2">
-                <div className="text-3xl font-bold text-navy font-[family-name:var(--font-display)]">
-                  {stat.value}
-                </div>
-                {stat.trend && (
-                  <span className="flex items-center text-xs font-medium text-sage mb-1">
-                    <TrendingUp className="h-3 w-3 mr-0.5" />
-                    {stat.trend}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-ink/45 mt-1">{stat.subtitle}</p>
-            </CardContent>
-          </Card>
-        ))}
+            <div className="w-10 h-10 rounded-full bg-oxblood/10 flex items-center justify-center">
+              <BookOpen className="h-5 w-5 text-oxblood" />
+            </div>
+            <span className="text-sm font-medium text-navy">Record Session</span>
+          </Link>
+          <Link
+            href="/teacher/students"
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-ink/10 hover:border-sage/30 hover:bg-sage/5 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-full bg-sage/10 flex items-center justify-center">
+              <Users className="h-5 w-5 text-sage" />
+            </div>
+            <span className="text-sm font-medium text-navy">View Students</span>
+          </Link>
+          <Link
+            href="/teacher/assignments"
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-ink/10 hover:border-gold/30 hover:bg-gold/5 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
+              <ClipboardList className="h-5 w-5 text-gold" />
+            </div>
+            <span className="text-sm font-medium text-navy">Assignments</span>
+          </Link>
+          <Link
+            href="/teacher/students"
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-ink/10 hover:border-navy/30 hover:bg-navy/5 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-full bg-navy/10 flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-navy" />
+            </div>
+            <span className="text-sm font-medium text-navy">Progress</span>
+          </Link>
+        </div>
       </div>
 
-      {/* Quick Actions & Recent Sessions */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Quick Actions */}
-        <Card className="animate-slide-in-up" style={{ animationDelay: "0.2s" }}>
-          <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Link href="/teacher/students" className="block">
-              <Button variant="outline" className="w-full justify-between group">
-                <span className="flex items-center">
-                  <Users className="mr-3 h-4 w-4 text-ink/50" />
-                  View My Students
-                </span>
-                <ArrowRight className="h-4 w-4 text-ink/30 group-hover:text-ink/60 group-hover:translate-x-1 transition-all duration-200" />
-              </Button>
-            </Link>
-            <Link href="/teacher/assignments" className="block">
-              <Button variant="outline" className="w-full justify-between group">
-                <span className="flex items-center">
-                  <ClipboardList className="mr-3 h-4 w-4 text-ink/50" />
-                  Manage Assignments
-                </span>
-                <ArrowRight className="h-4 w-4 text-ink/30 group-hover:text-ink/60 group-hover:translate-x-1 transition-all duration-200" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      {/* Main Grid Layout */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+        {/* Left Column */}
+        <div className="space-y-5">
+          {/* Students Overview Card */}
+          <div className="bg-white rounded-xl border border-ink/10 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-semibold text-navy">Students</h2>
+                <p className="text-sm text-ink/50">{studentCount} total students</p>
+              </div>
+              <select className="text-sm border border-ink/15 rounded-lg px-3 py-1.5 text-ink/70 bg-white">
+                <option>All students</option>
+              </select>
+            </div>
 
-        {/* Recent Sessions */}
-        <Card className="animate-slide-in-up" style={{ animationDelay: "0.3s" }}>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Recent Sessions</CardTitle>
-            {sessions && sessions.length > 3 && (
-              <Link href="/teacher/sessions">
-                <Button variant="ghost" size="sm" className="text-xs text-ink/50 hover:text-ink">
-                  View all
-                </Button>
-              </Link>
-            )}
-          </CardHeader>
-          <CardContent>
-            {sessions && sessions.length > 0 ? (
+            {studentCount > 0 ? (
               <div className="space-y-3">
-                {sessions.slice(0, 3).map((session, index) => (
+                {students?.filter(s => s !== null).slice(0, 4).map((student) => (
+                  <Link
+                    key={student._id}
+                    href={`/teacher/students/${student._id}`}
+                    className="flex items-center justify-between py-2 hover:bg-parchment/30 rounded-lg px-2 -mx-2 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-oxblood/10 flex items-center justify-center">
+                        <span className="text-sm font-medium text-oxblood">
+                          {student.user?.name?.charAt(0) || "?"}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-navy">
+                          {student.user?.name || "Unknown"}
+                        </p>
+                        <p className="text-xs text-ink/50">
+                          Student
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-ink/30" />
+                  </Link>
+                ))}
+                <Link
+                  href="/teacher/students"
+                  className="block text-center text-sm text-oxblood hover:text-oxblood/70 pt-2 transition-colors"
+                >
+                  View all students
+                </Link>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 rounded-full bg-parchment flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-ink/30" />
+                </div>
+                <p className="text-ink/60 font-medium mb-1">No students yet</p>
+                <p className="text-sm text-ink/40 mb-4">
+                  Add students to start tracking their progress
+                </p>
+                <Link href="/teacher/students">
+                  <Button variant="outline" size="sm">
+                    Add student
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-5">
+          {/* Sessions Overview */}
+          <div className="bg-white rounded-xl border border-ink/10 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-semibold text-navy">Sessions</h2>
+                <p className="text-sm text-ink/50">This week vs. last week</p>
+              </div>
+              <select className="text-sm border border-ink/15 rounded-lg px-3 py-1.5 text-ink/70 bg-white">
+                <option>This week</option>
+                <option>This month</option>
+                <option>All time</option>
+              </select>
+            </div>
+
+            {/* Simple Stats Display */}
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="text-center p-3 rounded-lg bg-parchment/50">
+                <p className="text-2xl font-semibold text-navy">{sessionsThisWeek}</p>
+                <p className="text-xs text-ink/50">This week</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-parchment/50">
+                <p className="text-2xl font-semibold text-sage">{passedSessions}</p>
+                <p className="text-xs text-ink/50">Passed</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-parchment/50">
+                <p className="text-2xl font-semibold text-navy">{totalSessions}</p>
+                <p className="text-xs text-ink/50">Total</p>
+              </div>
+            </div>
+
+            {/* Mini Chart Placeholder */}
+            <div className="h-24 flex items-end gap-1 px-2">
+              {[40, 65, 45, 80, 55, 90, 70].map((height, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div
+                    className={cn(
+                      "w-full rounded-t",
+                      i === 6 ? "bg-oxblood" : "bg-ink/10"
+                    )}
+                    style={{ height: `${height}%` }}
+                  />
+                  <span className="text-[10px] text-ink/40">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Sessions */}
+          <div className="bg-white rounded-xl border border-ink/10 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-semibold text-navy">Recent Sessions</h2>
+                <p className="text-sm text-ink/50">Most recent</p>
+              </div>
+              <select className="text-sm border border-ink/15 rounded-lg px-3 py-1.5 text-ink/70 bg-white">
+                <option>All sessions</option>
+              </select>
+            </div>
+
+            {sessions && sessions.length > 0 ? (
+              <div className="space-y-2">
+                {sessions.slice(0, 4).map((session) => (
                   <div
                     key={session._id}
-                    className="flex justify-between items-center p-3 rounded-xl bg-parchment/50 hover:bg-parchment transition-colors duration-200"
-                    style={{ animationDelay: `${0.3 + index * 0.05}s` }}
+                    className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-parchment/30 hover:bg-parchment/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-2 h-2 rounded-full",
-                        session.isPassed ? "bg-sage" : "bg-red-500"
+                        session.isPassed ? "bg-sage" : "bg-red-400"
                       )} />
                       <div>
                         <p className="text-sm font-medium text-navy">
-                          {session.student?.user?.name}
+                          {session.student?.user?.name || "Unknown"}
                         </p>
                         <p className="text-xs text-ink/50">
-                          {session.surah?.nameEnglish}
+                          {session.surah?.nameEnglish || "Unknown surah"}
                         </p>
                       </div>
                     </div>
                     <span className={cn(
-                      "text-xs font-semibold px-2.5 py-1 rounded-lg",
+                      "text-xs font-medium px-2 py-1 rounded-md",
                       session.isPassed
                         ? "bg-sage/10 text-sage"
                         : "bg-red-100 text-red-600"
                     )}>
-                      {session.isPassed ? "Passed" : "Failed"}
+                      {session.isPassed ? "Passed" : "Needs Work"}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-8">
-                <BookOpen className="h-10 w-10 text-ink/20 mx-auto mb-3" />
-                <p className="text-ink/50 text-sm">
-                  No sessions recorded yet.
-                </p>
+                <p className="text-ink/50 text-sm">No sessions recorded yet.</p>
                 <p className="text-ink/40 text-xs mt-1">
-                  Start by recording a student session.
+                  Record a session to see it here
                 </p>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+        </div>
       </div>
     </div>
   );

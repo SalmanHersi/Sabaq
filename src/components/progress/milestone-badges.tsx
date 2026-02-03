@@ -92,7 +92,7 @@ export function MilestoneBadges({ milestones, showAll = false }: MilestoneBadges
 
   if (milestones.length === 0) {
     return (
-      <Card className="border-gold/20 bg-white">
+      <Card className="">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-navy">
             <Award className="h-5 w-5 text-gold" />
@@ -113,7 +113,7 @@ export function MilestoneBadges({ milestones, showAll = false }: MilestoneBadges
   }
 
   return (
-    <Card className="border-gold/20 bg-white">
+    <Card className="">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-navy">
           <Award className="h-5 w-5 text-gold" />

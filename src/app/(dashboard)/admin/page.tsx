@@ -32,7 +32,7 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <Link href="/admin/teachers">
-          <Card className="border-gold/20 bg-white hover:border-oxblood/30 transition-colors cursor-pointer">
+          <Card className="hover:border-ink/20 transition-colors cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-ink/70">Total Teachers</CardTitle>
               <Users className="h-4 w-4 text-oxblood" />
@@ -45,7 +45,7 @@ export default function AdminDashboard() {
         </Link>
 
         <Link href="/admin/students">
-          <Card className="border-gold/20 bg-white hover:border-sage/30 transition-colors cursor-pointer">
+          <Card className="hover:border-ink/20 transition-colors cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-ink/70">Total Students</CardTitle>
               <GraduationCap className="h-4 w-4 text-sage" />
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
           </Card>
         </Link>
 
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-ink/70">Sessions Today</CardTitle>
             <BookOpen className="h-4 w-4 text-gold" />
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-ink/70">Active Students</CardTitle>
             <TrendingUp className="h-4 w-4 text-sage" />
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <Card className="border-gold/20 bg-white">
+      <Card className="">
         <CardHeader>
           <CardTitle className="text-navy">Quick Actions</CardTitle>
         </CardHeader>
@@ -89,14 +89,14 @@ export default function AdminDashboard() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Link
               href="/admin/teachers"
-              className="flex items-center gap-3 p-3 rounded-lg border border-gold/20 hover:border-oxblood/30 hover:bg-oxblood/5 transition-colors"
+              className="flex items-center gap-3 p-3 rounded-lg border border-ink/10 hover:border-oxblood/30 hover:bg-oxblood/5 transition-colors"
             >
               <Users className="h-5 w-5 text-oxblood" />
               <span className="font-medium text-navy">Manage Teachers</span>
             </Link>
             <Link
               href="/admin/students"
-              className="flex items-center gap-3 p-3 rounded-lg border border-gold/20 hover:border-sage/30 hover:bg-sage/5 transition-colors"
+              className="flex items-center gap-3 p-3 rounded-lg border border-ink/10 hover:border-sage/30 hover:bg-sage/5 transition-colors"
             >
               <GraduationCap className="h-5 w-5 text-sage" />
               <span className="font-medium text-navy">Manage Students</span>

@@ -265,7 +265,7 @@ export function SessionForm({ studentId, studentName, onSuccess, lastSession, co
       )}
 
       {/* Main Session Form Card */}
-      <Card className="border-gold/20">
+      <Card className="">
         <CardHeader className="pb-4">
           <CardTitle className="text-navy">Record Session for {studentName}</CardTitle>
         </CardHeader>

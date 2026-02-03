@@ -37,7 +37,7 @@ export default function TeacherStudentsPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {students.filter((s): s is NonNullable<typeof s> => s !== null).map((student) => (
             <Link key={student._id} href={`/teacher/students/${student._id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <Card className="hover:border-ink/20 transition-colors cursor-pointer">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-3">

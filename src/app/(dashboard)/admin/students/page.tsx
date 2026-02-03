@@ -96,7 +96,7 @@ export default function StudentsPage() {
 
       {/* Add Student Form */}
       {showAddForm && (
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardHeader>
             <CardTitle className="text-navy">Add New Student</CardTitle>
           </CardHeader>
@@ -184,7 +184,7 @@ export default function StudentsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
         </div>
       ) : !students || students.length === 0 ? (
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="py-12 text-center">
             <GraduationCap className="h-12 w-12 mx-auto text-ink/30 mb-4" />
             <h3 className="text-lg font-medium text-navy mb-2">No students yet</h3>
@@ -203,7 +203,7 @@ export default function StudentsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {students.filter((s): s is NonNullable<typeof s> => s !== null).map((student) => (
-            <Card key={student._id} className="border-gold/20 bg-white">
+            <Card key={student._id} className="">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sage/10">

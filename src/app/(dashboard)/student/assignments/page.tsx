@@ -80,7 +80,7 @@ export default function StudentAssignmentsPage() {
 
       {/* Stats */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -91,7 +91,7 @@ export default function StudentAssignmentsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -102,7 +102,7 @@ export default function StudentAssignmentsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -113,7 +113,7 @@ export default function StudentAssignmentsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -127,7 +127,7 @@ export default function StudentAssignmentsPage() {
       </div>
 
       {/* Active Assignments */}
-      <Card className="border-gold/20 bg-white">
+      <Card className="">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-navy">
             <ClipboardList className="h-5 w-5 text-oxblood" />
@@ -228,7 +228,7 @@ export default function StudentAssignmentsPage() {
 
       {/* Completed Assignments (Collapsible) */}
       {completedAssignments.length > 0 && (
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardHeader
             className="cursor-pointer"
             onClick={() => setShowCompleted(!showCompleted)}

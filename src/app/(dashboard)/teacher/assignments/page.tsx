@@ -10,13 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SurahSelector } from "@/components/quran/surah-selector";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogBody,
-} from "@/components/ui/dialog";
-import {
   ClipboardList,
   Plus,
   Loader2,
@@ -86,6 +79,11 @@ export default function TeacherAssignmentsPage() {
     setIncludeQuranRange(false);
   };
 
+  const handleCloseCreate = () => {
+    setIsCreateOpen(false);
+    resetForm();
+  };
+
   const handleCreate = async () => {
     if (!selectedStudent || !title.trim()) return;
 
@@ -147,17 +145,174 @@ export default function TeacherAssignmentsPage() {
           <p className="text-ink/60 text-sm">Create and manage student assignments</p>
         </div>
         <Button
-          onClick={() => setIsCreateOpen(true)}
+          onClick={() => {
+            if (isCreateOpen) {
+              handleCloseCreate();
+            } else {
+              setIsCreateOpen(true);
+            }
+          }}
           className="bg-oxblood hover:bg-oxblood/90"
         >
           <Plus className="mr-2 h-4 w-4" />
-          New Assignment
+          {isCreateOpen ? "Close" : "New Assignment"}
         </Button>
       </div>
 
+      {isCreateOpen && (
+        <Card className="">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-ink/10">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Plus className="h-5 w-5 text-oxblood" />
+              Create Assignment
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-ink/50 hover:text-ink"
+              onClick={handleCloseCreate}
+            >
+              Close
+            </Button>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Student Selection */}
+              <div className="space-y-2">
+                <Label>Student *</Label>
+                <select
+                  value={selectedStudent}
+                  onChange={(e) => setSelectedStudent(e.target.value)}
+                  className="w-full border border-gold/20 rounded-md px-3 py-2 bg-white"
+                >
+                  <option value="">Select a student...</option>
+                  {students?.filter((s): s is NonNullable<typeof s> => s !== null).map((student) => (
+                    <option key={student._id} value={student._id}>
+                      {student.user?.name || "Unknown"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Title */}
+              <div className="space-y-2">
+                <Label>Title *</Label>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Memorize Surah Al-Fatihah"
+                />
+              </div>
+
+              {/* Quran Range Toggle */}
+              <div className="sm:col-span-2 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="includeQuranRange"
+                  checked={includeQuranRange}
+                  onChange={(e) => setIncludeQuranRange(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="includeQuranRange" className="cursor-pointer">
+                  Include specific Quran verses
+                </Label>
+              </div>
+
+              {/* Quran Range (Conditional) */}
+              {includeQuranRange && (
+                <div className="sm:col-span-2 space-y-3 p-3 bg-stone-50 rounded-lg border border-gold/10">
+                  <div className="space-y-2">
+                    <Label>Surah</Label>
+                    <SurahSelector
+                      value={selectedSurah?.id}
+                      onChange={(surah) => {
+                        setSelectedSurah(surah);
+                        setStartAyah(1);
+                        setEndAyah(1);
+                      }}
+                    />
+                  </div>
+                  {selectedSurah && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Start Verse</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={selectedSurah.totalAyahs}
+                          value={startAyah}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 1;
+                            setStartAyah(val);
+                            if (val > endAyah) setEndAyah(val);
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>End Verse</Label>
+                        <Input
+                          type="number"
+                          min={startAyah}
+                          max={selectedSurah.totalAyahs}
+                          value={endAyah}
+                          onChange={(e) => setEndAyah(parseInt(e.target.value) || startAyah)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Due Date */}
+              <div className="space-y-2">
+                <Label>Due Date (optional)</Label>
+                <Input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+
+              {/* Instructions */}
+              <div className="sm:col-span-2 space-y-2">
+                <Label>Instructions (optional)</Label>
+                <textarea
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  placeholder="Any specific instructions for the student..."
+                  className="w-full min-h-[90px] border border-gold/20 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={handleCloseCreate}
+                className="sm:flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={isSubmitting || !selectedStudent || !title.trim()}
+                className="sm:flex-1 bg-oxblood hover:bg-oxblood/90"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Create Assignment"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -170,7 +325,7 @@ export default function TeacherAssignmentsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -183,7 +338,7 @@ export default function TeacherAssignmentsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -196,7 +351,7 @@ export default function TeacherAssignmentsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -212,7 +367,7 @@ export default function TeacherAssignmentsPage() {
       </div>
 
       {/* Active Assignments */}
-      <Card className="border-gold/20 bg-white">
+      <Card className="">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-navy">
             <ClipboardList className="h-5 w-5 text-oxblood" />
@@ -303,7 +458,7 @@ export default function TeacherAssignmentsPage() {
 
       {/* Completed Assignments (Collapsible) */}
       {completedAssignments.length > 0 && (
-        <Card className="border-gold/20 bg-white">
+        <Card className="">
           <CardHeader
             className="cursor-pointer"
             onClick={() => setShowCompleted(!showCompleted)}
@@ -362,151 +517,6 @@ export default function TeacherAssignmentsPage() {
         </Card>
       )}
 
-      {/* Create Assignment Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent onClose={() => setIsCreateOpen(false)} className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-oxblood" />
-              Create Assignment
-            </DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-4">
-            {/* Student Selection */}
-            <div className="space-y-2">
-              <Label>Student *</Label>
-              <select
-                value={selectedStudent}
-                onChange={(e) => setSelectedStudent(e.target.value)}
-                className="w-full border rounded-md px-3 py-2 bg-white"
-              >
-                <option value="">Select a student...</option>
-                {students?.filter((s): s is NonNullable<typeof s> => s !== null).map((student) => (
-                  <option key={student._id} value={student._id}>
-                    {student.user?.name || "Unknown"}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Title */}
-            <div className="space-y-2">
-              <Label>Title *</Label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Memorize Surah Al-Fatihah"
-              />
-            </div>
-
-            {/* Quran Range Toggle */}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="includeQuranRange"
-                checked={includeQuranRange}
-                onChange={(e) => setIncludeQuranRange(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <Label htmlFor="includeQuranRange" className="cursor-pointer">
-                Include specific Quran verses
-              </Label>
-            </div>
-
-            {/* Quran Range (Conditional) */}
-            {includeQuranRange && (
-              <div className="space-y-3 p-3 bg-stone-50 rounded-lg">
-                <div className="space-y-2">
-                  <Label>Surah</Label>
-                  <SurahSelector
-                    value={selectedSurah?.id}
-                    onChange={(surah) => {
-                      setSelectedSurah(surah);
-                      setStartAyah(1);
-                      setEndAyah(1);
-                    }}
-                  />
-                </div>
-                {selectedSurah && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Start Verse</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={selectedSurah.totalAyahs}
-                        value={startAyah}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 1;
-                          setStartAyah(val);
-                          if (val > endAyah) setEndAyah(val);
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>End Verse</Label>
-                      <Input
-                        type="number"
-                        min={startAyah}
-                        max={selectedSurah.totalAyahs}
-                        value={endAyah}
-                        onChange={(e) => setEndAyah(parseInt(e.target.value) || startAyah)}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Due Date */}
-            <div className="space-y-2">
-              <Label>Due Date (optional)</Label>
-              <Input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </div>
-
-            {/* Instructions */}
-            <div className="space-y-2">
-              <Label>Instructions (optional)</Label>
-              <textarea
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-                placeholder="Any specific instructions for the student..."
-                className="w-full min-h-[80px] border rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsCreateOpen(false);
-                  resetForm();
-                }}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreate}
-                disabled={isSubmitting || !selectedStudent || !title.trim()}
-                className="flex-1 bg-oxblood hover:bg-oxblood/90"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Create Assignment"
-                )}
-              </Button>
-            </div>
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
