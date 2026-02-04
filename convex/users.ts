@@ -134,7 +134,7 @@ export const ensureCurrentUser = mutation({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized");
+      return null;
     }
 
     const existingUser = await ctx.db

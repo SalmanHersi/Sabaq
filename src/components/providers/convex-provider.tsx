@@ -4,7 +4,7 @@ import { ReactNode, Component, ErrorInfo, useEffect } from "react";
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
-import { useMutation } from "convex/react";
+import { useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -62,15 +62,16 @@ class ProviderErrorBoundary extends Component<{ children: ReactNode }, ErrorBoun
 
 function UserBootstrap() {
   const { isLoaded, isSignedIn } = useAuth();
+  const { isAuthenticated, isLoading: convexAuthLoading } = useConvexAuth();
   const ensureCurrentUser = useMutation(api.users.ensureCurrentUser);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (isLoaded && isSignedIn && isAuthenticated && !convexAuthLoading) {
       ensureCurrentUser().catch((error) => {
         console.error("Failed to sync user:", error);
       });
     }
-  }, [isLoaded, isSignedIn, ensureCurrentUser]);
+  }, [isLoaded, isSignedIn, isAuthenticated, convexAuthLoading, ensureCurrentUser]);
 
   return null;
 }
