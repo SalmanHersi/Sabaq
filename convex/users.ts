@@ -6,7 +6,12 @@ import { userRole } from "./schema";
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
+    let identity;
+    try {
+      identity = await ctx.auth.getUserIdentity();
+    } catch {
+      return null;
+    }
     if (!identity) {
       return null;
     }
