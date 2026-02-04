@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { internalAction, internalQuery } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { Resend } from "resend";
 
 export const getSessionEmailSummary = internalQuery({
@@ -69,7 +68,7 @@ export const sendSessionSummaryEmail = internalAction({
       return { skipped: true };
     }
 
-    const summary = await ctx.runQuery(internal.emails.getSessionEmailSummary, {
+    const summary = await ctx.runQuery(getSessionEmailSummary, {
       sessionId: args.sessionId,
     });
 
