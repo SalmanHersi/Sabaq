@@ -14,13 +14,14 @@ export default function StudentDashboard() {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const { user, isLoading: userLoading } = useCurrentUser();
 
-  const studentProfile = useQuery(api.students.getMine, isAuthenticated ? {} : "skip");
+  const shouldLoadProfile = isAuthenticated;
+  const studentProfile = useQuery(api.students.getMine, shouldLoadProfile ? {} : "skip");
 
-  // Get student's sessions - only query when authenticated
+  const shouldLoadSummary = Boolean(studentProfile?._id);
   const sessions = useQuery(api.sessions.list, isAuthenticated ? { limit: 5 } : "skip");
   const summary = useQuery(
     api.progress.getSummary,
-    studentProfile?._id ? { studentId: studentProfile._id } : "skip"
+    shouldLoadSummary ? { studentId: studentProfile!._id } : "skip"
   );
   const assignments = useQuery(
     api.assignments.list,
@@ -29,20 +30,37 @@ export default function StudentDashboard() {
 
   const studentProfileId = studentProfile?._id;
 
-  if (
+  const isLoading =
     authLoading ||
     userLoading ||
-    sessions === undefined ||
-    studentProfile === undefined ||
-    summary === undefined ||
-    assignments === undefined
-  ) {
+    (shouldLoadProfile && studentProfile === undefined) ||
+    (isAuthenticated && sessions === undefined) ||
+    (isAuthenticated && assignments === undefined) ||
+    (shouldLoadSummary && summary === undefined);
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
           <p className="text-sm text-ink/50">Loading your progress...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (studentProfile === null) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-navy">Student Dashboard</h1>
+          <p className="text-ink/60 text-sm">We couldn&apos;t find a student profile yet.</p>
+        </div>
+        <Card>
+          <CardContent className="py-8 text-center text-ink/60 text-sm">
+            If you just signed in, try refreshing. If this persists, ask your admin to create your student profile.
+          </CardContent>
+        </Card>
       </div>
     );
   }
