@@ -18,12 +18,13 @@ export default function TeacherDashboard() {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
 
   // Get teacher's students
-  const students = useQuery(api.students.list, isAuthenticated ? {} : "skip");
+  const shouldLoad = isAuthenticated;
+  const students = useQuery(api.students.list, shouldLoad ? {} : "skip");
 
   // Get teacher's sessions
-  const sessions = useQuery(api.sessions.list, isAuthenticated ? { limit: 10 } : "skip");
+  const sessions = useQuery(api.sessions.list, shouldLoad ? { limit: 10 } : "skip");
 
-  const loading = authLoading || students === undefined || sessions === undefined;
+  const loading = authLoading || (shouldLoad && (students === undefined || sessions === undefined));
 
   // Calculate stats
   const studentCount = students?.length || 0;
@@ -42,6 +43,19 @@ export default function TeacherDashboard() {
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
           <p className="text-sm text-ink/50">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-2">
+          <p className="text-sm text-ink/60">Your session expired. Please sign in again.</p>
+          <Link href="/login" className="text-sm text-oxblood hover:underline">
+            Go to sign in
+          </Link>
         </div>
       </div>
     );
