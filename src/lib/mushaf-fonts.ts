@@ -12,6 +12,19 @@ const loadedFonts = new Set<string>();
 const loadingPromises = new Map<string, Promise<void>>();
 
 export type FontVersion = "v1" | "v2";
+export const DEFAULT_QCF_FONT_SCALE = 3;
+
+const getQcfFontKey = (version: FontVersion): string => `code_${version}`;
+
+export const getFontSizeClassName = (
+  version: FontVersion,
+  fontScale: number = DEFAULT_QCF_FONT_SCALE
+): string => `${getQcfFontKey(version)}-font-size-${fontScale}`;
+
+export const getLineWidthClassName = (
+  version: FontVersion,
+  fontScale: number = DEFAULT_QCF_FONT_SCALE
+): string => `${getQcfFontKey(version)}-line-width-${fontScale}`;
 
 /**
  * Get the font URL for a specific page

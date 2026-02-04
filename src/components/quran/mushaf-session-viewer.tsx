@@ -14,10 +14,14 @@ import { Button } from "@/components/ui/button";
 import {
   loadPageFont,
   preloadPageFonts,
-  getFontFamily,
   isFontLoaded,
   type FontVersion,
+  DEFAULT_QCF_FONT_SCALE,
+  getFontSizeClassName,
+  getLineWidthClassName,
+  getPageFontStyle,
 } from "@/lib/mushaf-fonts";
+import { isCenterAlignedLine } from "@/lib/mushaf-layout";
 
 // Mistake types - matching existing QuranViewer interface
 export type MistakeType = "FORGOT_AYAH" | "WORD_MISTAKE";
@@ -143,6 +147,7 @@ export function MushafSessionViewer({
   const [currentPageNumber, setCurrentPageNumber] = useState<number | null>(null); // Start as null until determined
   const [loading, setLoading] = useState(true);
   const [fontLoaded, setFontLoaded] = useState(false);
+  const [fontReady, setFontReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentMode, setCurrentMode] = useState<"select" | "mistakes">(
     mode === "view" ? "select" : mode
@@ -274,7 +279,9 @@ export function MushafSessionViewer({
 
     setLoading(true);
     setError(null);
-    setFontLoaded(false);
+    const alreadyLoaded = isFontLoaded(currentPageNumber, fontVersion);
+    setFontLoaded(alreadyLoaded);
+    setFontReady(alreadyLoaded);
 
     // Load both font and page data in parallel, but wait for both
     const fontPromise = loadFontForPage(currentPageNumber);
@@ -288,7 +295,8 @@ export function MushafSessionViewer({
     Promise.all([fontPromise, dataPromise])
       .then(([fontSuccess, data]) => {
         setPageData(data);
-        setFontLoaded(true); // Font loaded (or fallback)
+        setFontLoaded(true);
+        setFontReady(fontSuccess);
         setLoading(false);
 
         // Preload adjacent pages in background
@@ -299,6 +307,8 @@ export function MushafSessionViewer({
       })
       .catch((err) => {
         setError(err.message || "Failed to load page");
+        setFontLoaded(true);
+        setFontReady(false);
         setLoading(false);
       });
   }, [currentPageNumber, pageNumberLoading, fontVersion, loadFontForPage]);
@@ -477,7 +487,12 @@ export function MushafSessionViewer({
     return mistakeDetails.some((m) => m.ayah === ayahNum && !m.wordIndex && m.type === "FORGOT_AYAH");
   };
 
-  const fontFamily = currentPageNumber ? getFontFamily(currentPageNumber, fontVersion) : "";
+  const fontFamily = currentPageNumber
+    ? getPageFontStyle(currentPageNumber, fontVersion)
+    : "";
+  const fontScale = DEFAULT_QCF_FONT_SCALE;
+  const fontSizeClassName = getFontSizeClassName(fontVersion, fontScale);
+  const lineWidthClassName = getLineWidthClassName(fontVersion, fontScale);
 
   // Navigation
   const goToPage = (page: number) => {
@@ -661,18 +676,17 @@ export function MushafSessionViewer({
           <div className="h-1 sm:h-2 bg-gradient-to-r from-stone-300 via-amber-200 to-stone-300" />
 
           <div className="px-1 py-3 sm:px-4 sm:py-6 md:px-6 md:py-8">
-            <div className="mushaf-lines space-y-0">
+            <div
+              className={cn("mushaf-lines space-y-0", fontSizeClassName, lineWidthClassName)}
+              style={{ fontFamily }}
+            >
               {pageData.lines.map((line) => (
                 <div
                   key={line.lineNumber}
-                  className="mushaf-line flex justify-center items-baseline flex-wrap"
-                  style={{
-                    fontFamily: `"${fontFamily}", "KFGQPC Uthmanic Script HAFS", serif`,
-                    fontSize: isMobileView && isMobileFullscreen
-                      ? "clamp(1.35rem, 6.2cqi, 3rem)"
-                      : "clamp(1.15rem, 4.5cqi, 2.5rem)",
-                    lineHeight: "2.1",
-                  }}
+                  className={cn(
+                    "mushaf-line",
+                    isCenterAlignedLine(currentPageNumber, line.lineNumber) && "mushaf-line-center"
+                  )}
                 >
                   {line.words.map((word, idx) => {
                     const chapterId = getChapterFromKey(word.verseKey);
@@ -681,6 +695,7 @@ export function MushafSessionViewer({
                     const mistakeType = getWordMistake(word);
                     const isEndMarker = word.charType === "end";
                     const glyphCode = fontVersion === "v1" ? word.codeV1 : word.codeV2;
+                    const displayText = fontReady ? glyphCode : word.textUthmani;
                     const ayahForgot = isAyahForgot(ayahNum);
                     const isCurrentSurah = chapterId === surahId;
 
@@ -691,7 +706,7 @@ export function MushafSessionViewer({
                           key={`${word.verseKey}-end-${idx}`}
                           onClick={(e) => handleAyahMarkerClick(word, e)}
                           className={cn(
-                            "cursor-pointer transition-all px-0.5",
+                            "mushaf-word cursor-pointer transition-all",
                             "hover:scale-110",
                             inRange && "text-blue-600",
                             ayahForgot && "text-red-600 scale-110",
@@ -700,7 +715,7 @@ export function MushafSessionViewer({
                           )}
                           title={`Ayah ${ayahNum} - Click to mark as forgot`}
                         >
-                          {glyphCode || word.textUthmani}
+                          {displayText}
                         </span>
                       );
                     }
@@ -710,7 +725,7 @@ export function MushafSessionViewer({
                         key={`${word.verseKey}-${word.position}-${idx}`}
                         onClick={() => handleWordClick(word)}
                         className={cn(
-                          "cursor-pointer transition-all duration-150",
+                          "mushaf-word cursor-pointer transition-all duration-150",
                           // Dim words from other surahs
                           !isCurrentSurah && "opacity-40",
                           // Selection highlighting - lighter color with padding to eliminate gaps
@@ -721,7 +736,7 @@ export function MushafSessionViewer({
                             isCurrentSurah &&
                             "bg-sky-200/50 rounded py-1 -my-1",
                           // Mistake highlighting
-                          mistakeType === "WORD_MISTAKE" && "bg-orange-200/70 rounded px-0.5",
+                          mistakeType === "WORD_MISTAKE" && "bg-orange-200/70 rounded ring-1 ring-orange-300",
                           mistakeType === "FORGOT_AYAH" && "bg-red-200/60",
                           // Hover states
                           isCurrentSurah && mode !== "view" && currentMode === "select" && "hover:bg-sky-100/40",
@@ -734,7 +749,7 @@ export function MushafSessionViewer({
                         )}
                         title={word.textUthmani}
                       >
-                        {glyphCode || word.textUthmani}
+                        {displayText}
                       </span>
                     );
                   })}

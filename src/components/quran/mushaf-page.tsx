@@ -6,10 +6,14 @@ import { Loader2 } from "lucide-react";
 import {
   loadPageFont,
   preloadPageFonts,
-  getFontFamily,
   isFontLoaded,
   type FontVersion,
+  DEFAULT_QCF_FONT_SCALE,
+  getFontSizeClassName,
+  getLineWidthClassName,
+  getPageFontStyle,
 } from "@/lib/mushaf-fonts";
+import { isCenterAlignedLine } from "@/lib/mushaf-layout";
 
 // Types from the API
 interface MushafWord {
@@ -72,6 +76,7 @@ export function MushafPage({
   const [pageData, setPageData] = useState<MushafPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fontLoaded, setFontLoaded] = useState(false);
+  const [fontReady, setFontReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load font for this page
@@ -79,6 +84,7 @@ export function MushafPage({
     try {
       await loadPageFont(pageNumber, fontVersion);
       setFontLoaded(true);
+      setFontReady(true);
 
       // Preload adjacent pages for smoother navigation
       const adjacentPages = [pageNumber - 1, pageNumber + 1].filter(
@@ -89,6 +95,7 @@ export function MushafPage({
       console.error("Font loading error:", err);
       // Continue without font - will fall back to text_uthmani
       setFontLoaded(true);
+      setFontReady(false);
     }
   }, [pageNumber, fontVersion]);
 
@@ -96,7 +103,9 @@ export function MushafPage({
   useEffect(() => {
     setLoading(true);
     setError(null);
-    setFontLoaded(isFontLoaded(pageNumber, fontVersion));
+    const alreadyLoaded = isFontLoaded(pageNumber, fontVersion);
+    setFontLoaded(alreadyLoaded);
+    setFontReady(alreadyLoaded);
 
     // Start loading font immediately
     loadFont();
@@ -126,7 +135,9 @@ export function MushafPage({
     }
   };
 
-  const fontFamily = getFontFamily(pageNumber, fontVersion);
+  const fontScale = DEFAULT_QCF_FONT_SCALE;
+  const fontSizeClassName = getFontSizeClassName(fontVersion, fontScale);
+  const lineWidthClassName = getLineWidthClassName(fontVersion, fontScale);
 
   if (loading || !fontLoaded) {
     return (
@@ -180,29 +191,31 @@ export function MushafPage({
       {/* Page content */}
       <div className="px-4 py-6 sm:px-6 sm:py-8 md:px-8">
         {/* Render lines */}
-        <div className="mushaf-lines space-y-0">
+        <div
+          className={cn("mushaf-lines space-y-0", fontSizeClassName, lineWidthClassName)}
+          style={{ fontFamily: getPageFontStyle(pageNumber, fontVersion) }}
+        >
           {pageData.lines.map((line) => (
             <div
               key={line.lineNumber}
-              className="mushaf-line flex justify-center items-baseline leading-[1.8] sm:leading-[2]"
-              style={{
-                fontFamily: `"${fontFamily}", "KFGQPC Uthmanic Script HAFS", serif`,
-                fontSize: "clamp(1.5rem, 4vw, 2.2rem)",
-                minHeight: "3rem",
-              }}
+              className={cn(
+                "mushaf-line",
+                isCenterAlignedLine(pageNumber, line.lineNumber) && "mushaf-line-center"
+              )}
             >
               {line.words.map((word, idx) => {
                 const isHighlightedWord = word.id === highlightedWordId;
                 const isHighlightedVerse = word.verseKey === highlightedVerseKey;
                 const isEndMarker = word.charType === "end";
                 const glyphCode = fontVersion === "v1" ? word.codeV1 : word.codeV2;
+                const displayText = fontReady ? glyphCode : word.textUthmani;
 
                 return (
                   <span
                     key={`${word.verseKey}-${word.position}-${idx}`}
                     onClick={() => handleWordClick(word)}
                     className={cn(
-                      "mushaf-word cursor-pointer transition-all duration-150 px-0.5",
+                      "mushaf-word cursor-pointer transition-all duration-150",
                       "hover:text-blue-700",
                       isHighlightedWord && "bg-yellow-200 rounded",
                       isHighlightedVerse && !isHighlightedWord && "text-blue-600",
@@ -212,7 +225,7 @@ export function MushafPage({
                     data-verse={word.verseKey}
                     data-word-id={word.id}
                   >
-                    {glyphCode || word.textUthmani}
+                    {displayText}
                   </span>
                 );
               })}
@@ -226,7 +239,6 @@ export function MushafPage({
                 <div
                   key={`empty-${idx}`}
                   className="mushaf-line"
-                  style={{ minHeight: "3rem" }}
                 />
               )
             )}

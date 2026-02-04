@@ -231,6 +231,105 @@ body {
   line-height: 1;
 }
 
+/* Mushaf layout tuned to match Quran.com spacing */
+.mushaf-lines {
+  direction: rtl;
+  text-align: center;
+}
+
+.mushaf-line {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  margin-inline: auto;
+  inline-size: 100%;
+  max-inline-size: var(--line-width, 100%);
+  line-height: var(--line-height, normal);
+  white-space: nowrap;
+}
+
+.mushaf-line-center {
+  justify-content: center;
+}
+
+.mushaf-word {
+  display: inline-block;
+  line-height: var(--line-height, normal);
+  white-space: nowrap;
+}
+
+/* QCF font size scales (mobile + tablet) */
+.code_v1-font-size-1 { --font-size: 4vw; --line-height: normal; font-size: var(--font-size); }
+.code_v1-font-size-2 { --font-size: 5vw; --line-height: normal; font-size: var(--font-size); }
+.code_v1-font-size-3 { --font-size: 5.9vw; --line-height: normal; font-size: var(--font-size); }
+.code_v1-font-size-4 { --font-size: 10vw; --line-height: normal; font-size: var(--font-size); }
+.code_v1-font-size-5 { --font-size: 12vw; --line-height: normal; font-size: var(--font-size); }
+.code_v1-font-size-6 { --font-size: 13vw; --line-height: normal; font-size: var(--font-size); }
+.code_v1-font-size-7 { --font-size: 14vw; --line-height: normal; font-size: var(--font-size); }
+.code_v1-font-size-8 { --font-size: 15vw; --line-height: normal; font-size: var(--font-size); }
+.code_v1-font-size-9 { --font-size: 16vw; --line-height: normal; font-size: var(--font-size); }
+.code_v1-font-size-10 { --font-size: 17vw; --line-height: normal; font-size: var(--font-size); }
+
+.code_v2-font-size-1 { --font-size: 4vw; --line-height: normal; font-size: var(--font-size); }
+.code_v2-font-size-2 { --font-size: 5vw; --line-height: normal; font-size: var(--font-size); }
+.code_v2-font-size-3 { --font-size: 5.3vw; --line-height: normal; font-size: var(--font-size); }
+.code_v2-font-size-4 { --font-size: 8.4vw; --line-height: normal; font-size: var(--font-size); }
+.code_v2-font-size-5 { --font-size: 10vw; --line-height: normal; font-size: var(--font-size); }
+.code_v2-font-size-6 { --font-size: 11vw; --line-height: normal; font-size: var(--font-size); }
+.code_v2-font-size-7 { --font-size: 12vw; --line-height: normal; font-size: var(--font-size); }
+.code_v2-font-size-8 { --font-size: 13vw; --line-height: normal; font-size: var(--font-size); }
+.code_v2-font-size-9 { --font-size: 14vw; --line-height: normal; font-size: var(--font-size); }
+.code_v2-font-size-10 { --font-size: 15vw; --line-height: normal; font-size: var(--font-size); }
+
+@media (min-width: 768px) {
+  .code_v1-font-size-1 { --font-size: 3.5vh; --line-height: 6.1vh; }
+  .code_v1-font-size-2 { --font-size: 3.8vh; --line-height: 6vh; }
+  .code_v1-font-size-3 { --font-size: 4vh; --line-height: 5.8vh; }
+  .code_v1-font-size-4 { --font-size: 4.3vh; --line-height: 5.4vh; }
+  .code_v1-font-size-5 { --font-size: 4.5vh; --line-height: 5vh; }
+  .code_v1-font-size-6 { --font-size: 6.14vh; --line-height: 8vh; }
+  .code_v1-font-size-7 { --font-size: 7.77vh; --line-height: 11vh; }
+  .code_v1-font-size-8 { --font-size: 9.42vh; --line-height: 14vh; }
+  .code_v1-font-size-9 { --font-size: 11.05vh; --line-height: 17vh; }
+  .code_v1-font-size-10 { --font-size: 12.7vh; --line-height: 20vh; }
+
+  .code_v2-font-size-1 { --font-size: 2.9vh; --line-height: 6.1vh; }
+  .code_v2-font-size-2 { --font-size: 3vh; --line-height: 6.1vh; }
+  .code_v2-font-size-3 { --font-size: 3.2vh; --line-height: 6.1vh; }
+  .code_v2-font-size-4 { --font-size: 3.5vh; --line-height: 6.1vh; }
+  .code_v2-font-size-5 { --font-size: 3.7vh; --line-height: 6.1vh; }
+  .code_v2-font-size-6 { --font-size: 5.16vh; --line-height: 9.28vh; }
+  .code_v2-font-size-7 { --font-size: 6.62vh; --line-height: 12.46vh; }
+  .code_v2-font-size-8 { --font-size: 8.08vh; --line-height: 15.64vh; }
+  .code_v2-font-size-9 { --font-size: 9.54vh; --line-height: 18.82vh; }
+  .code_v2-font-size-10 { --font-size: 11vh; --line-height: 22vh; }
+}
+
+/* QCF fixed line widths (tablet and up) */
+@media (min-width: 768px) {
+  .code_v1-line-width-1 { --line-width: 54vh; }
+  .code_v1-line-width-2 { --line-width: 56.5vh; }
+  .code_v1-line-width-3 { --line-width: 59.5vh; }
+  .code_v1-line-width-4 { --line-width: 63vh; }
+  .code_v1-line-width-5 { --line-width: 67vh; }
+  .code_v1-line-width-6 { --line-width: 91.6vh; }
+  .code_v1-line-width-7 { --line-width: 116.2vh; }
+  .code_v1-line-width-8 { --line-width: 140.8vh; }
+  .code_v1-line-width-9 { --line-width: 165.4vh; }
+  .code_v1-line-width-10 { --line-width: 190vh; }
+
+  .code_v2-line-width-1 { --line-width: 52vh; }
+  .code_v2-line-width-2 { --line-width: 54vh; }
+  .code_v2-line-width-3 { --line-width: 56vh; }
+  .code_v2-line-width-4 { --line-width: 61vh; }
+  .code_v2-line-width-5 { --line-width: 64.5vh; }
+  .code_v2-line-width-6 { --line-width: 90.4vh; }
+  .code_v2-line-width-7 { --line-width: 116.3vh; }
+  .code_v2-line-width-8 { --line-width: 142.2vh; }
+  .code_v2-line-width-9 { --line-width: 168.1vh; }
+  .code_v2-line-width-10 { --line-width: 194vh; }
+}
+
 /* Bismillah styling */
 .bismillah {
   font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Scheherazade New', serif;
