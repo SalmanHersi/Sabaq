@@ -87,18 +87,16 @@ A streamlined Learning Management System for Islamic education centers to track 
 
 ### Stack
 - **Frontend:** Next.js 16 with React 19, TailwindCSS
-- **Backend:** Next.js API Routes
-- **Database:** PostgreSQL (Supabase)
-- **Hosting:** Railway
-- **Authentication:** NextAuth.js with magic link provider
+- **Backend:** Next.js API Routes + Convex
+- **Database:** Convex
+- **Hosting:** Vercel (app) + Convex (data)
+- **Authentication:** Clerk
 - **Validation:** Zod + React Hook Form
-- **ORM:** Prisma
 
 ### Hosting & Budget
 - **Budget:** $0 (free tiers only)
-- **App Hosting:** Railway free tier
-- **Database:** Supabase free tier
-- **Real-time:** Nice to have (Supabase has built-in support for future use)
+- **App Hosting:** Vercel free tier
+- **Database:** Convex free tier
 
 ### Quran Data
 - **Storage:** Pre-populated in database (all 114 Surahs, 6,236 verses)

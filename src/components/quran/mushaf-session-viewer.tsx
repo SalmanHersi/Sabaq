@@ -150,6 +150,8 @@ export function MushafSessionViewer({
   const [selectionState, setSelectionState] = useState<"idle" | "selecting">("idle");
   const [tempStartAyah, setTempStartAyah] = useState<number | null>(null);
   const [pageNumberLoading, setPageNumberLoading] = useState(true); // Track if we're still determining page number
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
 
   // Track which pages the selection spans (start and end pages)
   const [selectionPageRange, setSelectionPageRange] = useState<{ startPage: number | null; endPage: number | null }>({
@@ -158,6 +160,21 @@ export function MushafSessionViewer({
   });
 
   const hasSelection = startAyah != null && endAyah != null && startAyah > 0 && endAyah > 0;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsMobileView(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileView && isMobileFullscreen) {
+      setIsMobileFullscreen(false);
+    }
+  }, [isMobileView, isMobileFullscreen]);
 
   useEffect(() => {
     if (mode === "view" || currentMode !== "select") return;
@@ -491,7 +508,14 @@ export function MushafSessionViewer({
   }
 
   return (
-    <div className="space-y-2 sm:space-y-3">
+    <div
+      className={cn(
+        "space-y-2 sm:space-y-3",
+        isMobileView &&
+          isMobileFullscreen &&
+          "fixed inset-0 z-50 bg-[#f9f7f2] p-2 sm:p-3 overflow-y-auto"
+      )}
+    >
       {/* Mode Toggle */}
       {mode !== "view" && (
         <div className="space-y-2">
@@ -590,100 +614,142 @@ export function MushafSessionViewer({
 
       {/* Mushaf Page */}
       <div
-        className="mushaf-page bg-[#fffef5] border border-stone-300 rounded-lg shadow-xl overflow-x-auto"
-        style={{ containerType: "inline-size" }}
-        dir="rtl"
-        translate="no"
+        className={cn(
+          "relative",
+          isMobileView && !isMobileFullscreen && "rounded-xl bg-stone-100/70 p-2"
+        )}
       >
-        <div className="h-1 sm:h-2 bg-gradient-to-r from-stone-300 via-amber-200 to-stone-300" />
+        {isMobileView && !isMobileFullscreen && (
+          <div className="absolute -top-3 right-2 z-10">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => setIsMobileFullscreen(true)}
+              className="text-[11px] shadow-sm h-7 px-3"
+            >
+              Fullscreen
+            </Button>
+          </div>
+        )}
 
-        <div className="px-1 py-3 sm:px-4 sm:py-6 md:px-6 md:py-8">
-          <div className="mushaf-lines space-y-0">
-            {pageData.lines.map((line) => (
-              <div
-                key={line.lineNumber}
-                className="mushaf-line flex justify-center items-baseline flex-wrap"
-                style={{
-                  fontFamily: `"${fontFamily}", "KFGQPC Uthmanic Script HAFS", serif`,
-                  fontSize: "clamp(1.15rem, 4.5cqi, 2.5rem)",
-                  lineHeight: "2.1",
-                }}
+        <div
+          className={cn(
+            "mushaf-page bg-[#fffef5] border border-stone-300 rounded-lg shadow-xl overflow-x-auto",
+            isMobileView && isMobileFullscreen && "rounded-none border-0 shadow-none"
+          )}
+          style={{ containerType: "inline-size" }}
+          dir="rtl"
+          translate="no"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {isMobileView && isMobileFullscreen && (
+            <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-stone-200 flex items-center justify-between px-3 py-2">
+              <span className="text-xs font-medium text-stone-500">Fullscreen mode</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setIsMobileFullscreen(false)}
+                className="text-xs"
               >
-                {line.words.map((word, idx) => {
-                  const chapterId = getChapterFromKey(word.verseKey);
-                  const ayahNum = getAyahFromKey(word.verseKey);
-                  const inRange = isInRange(ayahNum, chapterId);
-                  const mistakeType = getWordMistake(word);
-                  const isEndMarker = word.charType === "end";
-                  const glyphCode = fontVersion === "v1" ? word.codeV1 : word.codeV2;
-                  const ayahForgot = isAyahForgot(ayahNum);
-                  const isCurrentSurah = chapterId === surahId;
+                Exit full screen
+              </Button>
+            </div>
+          )}
 
-                  // Ayah end marker
-                  if (isEndMarker) {
+          <div className="h-1 sm:h-2 bg-gradient-to-r from-stone-300 via-amber-200 to-stone-300" />
+
+          <div className="px-1 py-3 sm:px-4 sm:py-6 md:px-6 md:py-8">
+            <div className="mushaf-lines space-y-0">
+              {pageData.lines.map((line) => (
+                <div
+                  key={line.lineNumber}
+                  className="mushaf-line flex justify-center items-baseline flex-wrap"
+                  style={{
+                    fontFamily: `"${fontFamily}", "KFGQPC Uthmanic Script HAFS", serif`,
+                    fontSize: isMobileView && isMobileFullscreen
+                      ? "clamp(1.35rem, 6.2cqi, 3rem)"
+                      : "clamp(1.15rem, 4.5cqi, 2.5rem)",
+                    lineHeight: "2.1",
+                  }}
+                >
+                  {line.words.map((word, idx) => {
+                    const chapterId = getChapterFromKey(word.verseKey);
+                    const ayahNum = getAyahFromKey(word.verseKey);
+                    const inRange = isInRange(ayahNum, chapterId);
+                    const mistakeType = getWordMistake(word);
+                    const isEndMarker = word.charType === "end";
+                    const glyphCode = fontVersion === "v1" ? word.codeV1 : word.codeV2;
+                    const ayahForgot = isAyahForgot(ayahNum);
+                    const isCurrentSurah = chapterId === surahId;
+
+                    // Ayah end marker
+                    if (isEndMarker) {
+                      return (
+                        <span
+                          key={`${word.verseKey}-end-${idx}`}
+                          onClick={(e) => handleAyahMarkerClick(word, e)}
+                          className={cn(
+                            "cursor-pointer transition-all px-0.5",
+                            "hover:scale-110",
+                            inRange && "text-blue-600",
+                            ayahForgot && "text-red-600 scale-110",
+                            currentMode === "mistakes" && inRange && "hover:text-red-500",
+                            !isCurrentSurah && "opacity-40"
+                          )}
+                          title={`Ayah ${ayahNum} - Click to mark as forgot`}
+                        >
+                          {glyphCode || word.textUthmani}
+                        </span>
+                      );
+                    }
+
                     return (
                       <span
-                        key={`${word.verseKey}-end-${idx}`}
-                        onClick={(e) => handleAyahMarkerClick(word, e)}
+                        key={`${word.verseKey}-${word.position}-${idx}`}
+                        onClick={() => handleWordClick(word)}
                         className={cn(
-                          "cursor-pointer transition-all px-0.5",
-                          "hover:scale-110",
-                          inRange && "text-blue-600",
-                          ayahForgot && "text-red-600 scale-110",
-                          currentMode === "mistakes" && inRange && "hover:text-red-500",
-                          !isCurrentSurah && "opacity-40"
+                          "cursor-pointer transition-all duration-150",
+                          // Dim words from other surahs
+                          !isCurrentSurah && "opacity-40",
+                          // Selection highlighting - lighter color with padding to eliminate gaps
+                          inRange && !mistakeType && "bg-sky-100/30 py-1 -my-1",
+                          // Selection in progress
+                          selectionState === "selecting" &&
+                            ayahNum === tempStartAyah &&
+                            isCurrentSurah &&
+                            "bg-sky-200/50 rounded py-1 -my-1",
+                          // Mistake highlighting
+                          mistakeType === "WORD_MISTAKE" && "bg-orange-200/70 rounded px-0.5",
+                          mistakeType === "FORGOT_AYAH" && "bg-red-200/60",
+                          // Hover states
+                          isCurrentSurah && mode !== "view" && currentMode === "select" && "hover:bg-sky-100/40",
+                          isCurrentSurah &&
+                            mode !== "view" &&
+                            currentMode === "mistakes" &&
+                            inRange &&
+                            !ayahForgot &&
+                            "hover:bg-orange-100/60"
                         )}
-                        title={`Ayah ${ayahNum} - Click to mark as forgot`}
+                        title={word.textUthmani}
                       >
                         {glyphCode || word.textUthmani}
                       </span>
                     );
-                  }
-
-                  return (
-                    <span
-                      key={`${word.verseKey}-${word.position}-${idx}`}
-                      onClick={() => handleWordClick(word)}
-                      className={cn(
-                        "cursor-pointer transition-all duration-150",
-                        // Dim words from other surahs
-                        !isCurrentSurah && "opacity-40",
-                        // Selection highlighting - lighter color with padding to eliminate gaps
-                        inRange && !mistakeType && "bg-sky-100/30 py-1 -my-1",
-                        // Selection in progress
-                        selectionState === "selecting" &&
-                          ayahNum === tempStartAyah &&
-                          isCurrentSurah &&
-                          "bg-sky-200/50 rounded py-1 -my-1",
-                        // Mistake highlighting
-                        mistakeType === "WORD_MISTAKE" && "bg-orange-200/70 rounded px-0.5",
-                        mistakeType === "FORGOT_AYAH" && "bg-red-200/60",
-                        // Hover states
-                        isCurrentSurah && mode !== "view" && currentMode === "select" && "hover:bg-sky-100/40",
-                        isCurrentSurah &&
-                          mode !== "view" &&
-                          currentMode === "mistakes" &&
-                          inRange &&
-                          !ayahForgot &&
-                          "hover:bg-orange-100/60"
-                      )}
-                      title={word.textUthmani}
-                    >
-                      {glyphCode || word.textUthmani}
-                    </span>
-                  );
-                })}
-              </div>
-            ))}
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Page number (Arabic) */}
-        <div className="py-2 sm:py-3 border-t border-stone-200 bg-stone-50/50 text-center">
-          <span className="text-base sm:text-lg text-stone-500">{toArabicNumeral(currentPageNumber)}</span>
-        </div>
+          {/* Page number (Arabic) */}
+          <div className="py-2 sm:py-3 border-t border-stone-200 bg-stone-50/50 text-center">
+            <span className="text-base sm:text-lg text-stone-500">{toArabicNumeral(currentPageNumber)}</span>
+          </div>
 
-        <div className="h-1 sm:h-2 bg-gradient-to-r from-stone-300 via-amber-200 to-stone-300" />
+          <div className="h-1 sm:h-2 bg-gradient-to-r from-stone-300 via-amber-200 to-stone-300" />
+        </div>
       </div>
 
       {/* Page Navigation - Now at bottom */}

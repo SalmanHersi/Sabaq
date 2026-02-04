@@ -55,6 +55,9 @@ export default function StudentDetailPage() {
     );
   }
 
+  const contactEmail = student.primaryContactEmail || student.user?.email;
+  const contactLabel = student.primaryContact === "PARENT" ? "Parent" : "Student";
+
   const encodedStudentName = encodeURIComponent(student.user?.name || "Student");
 
   // Get the last session (first in the array since it's sorted by date desc)
@@ -179,7 +182,10 @@ export default function StudentDetailPage() {
             <h1 className="text-lg sm:text-2xl font-bold text-navy truncate">
               {student.user?.name}
             </h1>
-            <p className="text-ink/60 text-sm truncate">{student.user?.email}</p>
+            <p className="text-ink/60 text-sm truncate">
+              {contactEmail}
+              <span className="text-xs text-ink/40 ml-1">({contactLabel})</span>
+            </p>
           </div>
         </div>
       </div>

@@ -114,6 +114,82 @@ export const syncUser = mutation({
       currentAyah: 1,
       currentStreak: 0,
       longestStreak: 0,
+      primaryContact: "STUDENT",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return userId;
+  },
+});
+
+// Ensure a signed-in user exists in Convex (useful when webhooks aren't configured)
+export const ensureCurrentUser = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (existingUser) {
+      return existingUser._id;
+    }
+
+    const email = identity.email;
+    if (!email) {
+      throw new Error("Email not available in identity");
+    }
+
+    const name =
+      identity.name || email.split("@")[0] || "User";
+    const imageUrl = typeof identity.picture === "string" ? identity.picture : undefined;
+
+    const existingByEmail = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .unique();
+
+    const now = Date.now();
+    const centers = await ctx.db.query("centers").take(2);
+    const defaultCenterId = centers.length === 1 ? centers[0]._id : undefined;
+
+    if (existingByEmail) {
+      await ctx.db.patch(existingByEmail._id, {
+        clerkId: identity.subject,
+        name,
+        imageUrl,
+        ...(existingByEmail.centerId ? {} : defaultCenterId ? { centerId: defaultCenterId } : {}),
+        updatedAt: now,
+      });
+      return existingByEmail._id;
+    }
+
+    const userId = await ctx.db.insert("users", {
+      clerkId: identity.subject,
+      email,
+      name,
+      role: "STUDENT",
+      isActive: true,
+      imageUrl,
+      ...(defaultCenterId ? { centerId: defaultCenterId } : {}),
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("studentProfiles", {
+      userId,
+      enrollmentDate: now,
+      currentSurahId: 1,
+      currentAyah: 1,
+      currentStreak: 0,
+      longestStreak: 0,
+      primaryContact: "STUDENT",
       createdAt: now,
       updatedAt: now,
     });
@@ -203,6 +279,7 @@ export const updateRole = mutation({
           currentAyah: 1,
           currentStreak: 0,
           longestStreak: 0,
+          primaryContact: "STUDENT",
           createdAt: now,
           updatedAt: now,
         });

@@ -12,6 +12,7 @@ import {
   calculateTotalVerses,
 } from "./lib/streaks";
 import { sessionType } from "./schema";
+import { internal } from "./_generated/api";
 
 // List sessions with filters
 export const list = query({
@@ -33,16 +34,47 @@ export const list = query({
         return [];
       }
 
-      let query = ctx.db
-        .query("recitationSessions")
-        .withIndex("by_teacher", (q) => q.eq("teacherId", teacherProfile._id));
+      let query;
+
+      if (args.studentId) {
+        const studentId = args.studentId;
+        const studentProfile = await ctx.db.get(studentId);
+        const studentUser = studentProfile
+          ? await ctx.db.get(studentProfile.userId)
+          : null;
+
+        const centers = await ctx.db.query("centers").take(2);
+        const allowOrphans = centers.length <= 1;
+
+        const sameCenter =
+          user.centerId && studentUser?.centerId && user.centerId === studentUser.centerId;
+        const orphanAllowed = allowOrphans && !studentUser?.centerId;
+
+        let relation = null;
+        if (!sameCenter && !orphanAllowed) {
+          relation = await ctx.db
+            .query("studentTeachers")
+            .withIndex("by_student_teacher", (q) =>
+              q.eq("studentId", studentId).eq("teacherId", teacherProfile._id)
+            )
+            .unique();
+        }
+
+        if (!sameCenter && !orphanAllowed && !relation) {
+          throw new Error("Access denied");
+        }
+
+        query = ctx.db
+          .query("recitationSessions")
+          .withIndex("by_student", (q) => q.eq("studentId", studentId));
+      } else {
+        query = ctx.db
+          .query("recitationSessions")
+          .withIndex("by_teacher", (q) => q.eq("teacherId", teacherProfile._id));
+      }
 
       if (!includeVoided) {
         query = query.filter((q) => q.eq(q.field("voided"), false));
-      }
-
-      if (args.studentId) {
-        query = query.filter((q) => q.eq(q.field("studentId"), args.studentId));
       }
 
       sessions = await query.order("desc").take(limit);
@@ -228,6 +260,10 @@ export const create = mutation({
     if (args.isPassed) {
       await checkSurahCompleteMilestone(ctx, args.studentId, args.surahNumber);
     }
+
+    await ctx.scheduler.runAfter(0, internal.emails.sendSessionSummaryEmail, {
+      sessionId,
+    });
 
     return sessionId;
   },

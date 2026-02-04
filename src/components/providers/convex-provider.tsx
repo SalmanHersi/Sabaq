@@ -1,9 +1,11 @@
 "use client";
 
-import { ReactNode, Component, ErrorInfo } from "react";
+import { ReactNode, Component, ErrorInfo, useEffect } from "react";
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 const clerkPubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -58,6 +60,35 @@ class ProviderErrorBoundary extends Component<{ children: ReactNode }, ErrorBoun
   }
 }
 
+function UserBootstrap() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const ensureCurrentUser = useMutation(api.users.ensureCurrentUser);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      ensureCurrentUser().catch((error) => {
+        console.error("Failed to sync user:", error);
+      });
+    }
+  }, [isLoaded, isSignedIn, ensureCurrentUser]);
+
+  return null;
+}
+
+function useAuthWithConvexFallback() {
+  const auth = useAuth();
+
+  const getToken = async (options?: { template?: string; skipCache?: boolean }) => {
+    try {
+      return await auth.getToken({ template: "convex", skipCache: options?.skipCache });
+    } catch {
+      return await auth.getToken({ skipCache: options?.skipCache });
+    }
+  };
+
+  return { ...auth, getToken };
+}
+
 export function ConvexClientProvider({ children }: ConvexClientProviderProps) {
   // Check for missing environment variables
   if (!convexUrl || !convex) {
@@ -79,7 +110,8 @@ export function ConvexClientProvider({ children }: ConvexClientProviderProps) {
         signInFallbackRedirectUrl="/"
         signUpFallbackRedirectUrl="/"
       >
-        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        <ConvexProviderWithClerk client={convex} useAuth={useAuthWithConvexFallback}>
+          <UserBootstrap />
           {children}
         </ConvexProviderWithClerk>
       </ClerkProvider>

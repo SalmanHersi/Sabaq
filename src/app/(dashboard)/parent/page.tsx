@@ -9,13 +9,18 @@ import { StreakDisplay } from "@/components/progress/streak-display";
 import { MilestoneBadges } from "@/components/progress/milestone-badges";
 import { Users, BookOpen, Flame, Calendar, Award, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 export default function ParentDashboard() {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const { role, isLoading: userLoading } = useCurrentUser();
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
 
   // Get all children for this parent - only query when authenticated
-  const children = useQuery(api.parents.getChildren, isAuthenticated ? {} : "skip");
+  const children = useQuery(
+    api.parents.getChildren,
+    isAuthenticated && role === "PARENT" ? {} : "skip"
+  );
 
   // Get detailed summary for selected child
   const childSummary = useQuery(
@@ -28,13 +33,31 @@ export default function ParentDashboard() {
     setSelectedChildId(children[0]._id);
   }
 
-  const loading = authLoading || children === undefined;
+  const loading = authLoading || userLoading || (role === "PARENT" && children === undefined);
   const summaryLoading = selectedChildId && childSummary === undefined;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-oxblood" />
+      </div>
+    );
+  }
+
+  if (role && role !== "PARENT") {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-navy">Parent Dashboard</h1>
+          <p className="text-ink/60 text-sm">Monitor your child&apos;s Quran memorization progress</p>
+        </div>
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-ink/60">
+              This area is only available to parent accounts.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }

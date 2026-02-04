@@ -9,6 +9,7 @@
  */
 
 import type * as assignments from "../assignments.js";
+import type * as emails from "../emails.js";
 import type * as http from "../http.js";
 import type * as lib_permissions from "../lib/permissions.js";
 import type * as lib_streaks from "../lib/streaks.js";
@@ -29,6 +30,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   assignments: typeof assignments;
+  emails: typeof emails;
   http: typeof http;
   "lib/permissions": typeof lib_permissions;
   "lib/streaks": typeof lib_streaks;

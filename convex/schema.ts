@@ -44,6 +44,11 @@ export const milestoneType = v.union(
   v.literal("FIRST_SESSION")
 );
 
+export const primaryContact = v.union(
+  v.literal("STUDENT"),
+  v.literal("PARENT")
+);
+
 export default defineSchema({
   // ============================================
   // USERS & AUTHENTICATION
@@ -100,6 +105,8 @@ export default defineSchema({
     currentStreak: v.number(),
     longestStreak: v.number(),
     lastActiveDate: v.optional(v.number()),
+    primaryContact: v.optional(primaryContact),
+    primaryParentId: v.optional(v.id("parentProfiles")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
