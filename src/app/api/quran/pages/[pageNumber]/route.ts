@@ -89,8 +89,14 @@ export async function GET(
   }
 
   try {
-    // Fetch from Quran.com API
-    const apiUrl = `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=code_v1,code_v2,text_uthmani,line_number,position,char_type_name&per_page=50`;
+    // Fetch from Quran.com (QDC) API using the QCF mushaf layout (Madani V1).
+    // This matches Quran.com's own reading view line breaks.
+    const mushafId = 2; // QCF V1 (Madani V1) per quran.com
+    const apiUrl =
+      `https://api.qurancdn.com/api/qdc/verses/by_page/${pageNumber}` +
+      `?words=true&per_page=all&filter_page_words=true` +
+      `&mushaf=${mushafId}` +
+      `&word_fields=code_v1,code_v2,text_uthmani,line_number,position,char_type_name,page_number`;
 
     const response = await fetch(apiUrl, {
       headers: {
@@ -124,6 +130,10 @@ export async function GET(
       });
 
       for (const word of verse.words) {
+        // Ensure we only use words that belong to this page.
+        if (word.page_number && word.page_number !== pageNumber) {
+          continue;
+        }
         const lineNumber = word.line_number;
 
         if (!linesMap.has(lineNumber)) {
