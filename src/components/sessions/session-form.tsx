@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -85,6 +85,7 @@ export function SessionForm({ studentId, studentName, onSuccess, lastSession, co
   const [showQuranViewer, setShowQuranViewer] = useState(false);
   const [mistakeDetails, setMistakeDetails] = useState<MistakeDetail[]>([]);
   const [showLastSession, setShowLastSession] = useState(false);
+  const continueDefaultsAppliedRef = useRef(false);
 
   // Get surah data for continueFrom
   const continueFromSurah = useQuery(
@@ -100,12 +101,14 @@ export function SessionForm({ studentId, studentName, onSuccess, lastSession, co
 
   // Initialize from continueFrom prop if provided
   useEffect(() => {
-    if (continueFrom) {
+    // Only prime defaults once before the teacher starts interacting.
+    if (continueFrom && !continueDefaultsAppliedRef.current && !selectedSurah) {
       setStartAyah(continueFrom.startAyah);
       setEndAyah(continueFrom.endAyah ?? continueFrom.startAyah);
       setSessionType(continueFrom.sessionType);
+      continueDefaultsAppliedRef.current = true;
     }
-  }, [continueFrom]);
+  }, [continueFrom, selectedSurah]);
 
   const handleSurahChange = (surah: Surah) => {
     setSelectedSurah(surah);
@@ -401,7 +404,7 @@ export function SessionForm({ studentId, studentName, onSuccess, lastSession, co
 
                 {/* Mushaf Viewer */}
                 {showQuranViewer && (
-                  <div className="border border-gold/20 rounded-lg overflow-hidden">
+                  <div className="border-0 rounded-none overflow-visible lg:border lg:border-gold/20 lg:rounded-lg lg:overflow-hidden">
                     <MushafSessionViewer
                       surahId={selectedSurah.id}
                       startAyah={startAyah}

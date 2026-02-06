@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAuth, requireRole, getParentProfile, getStudentProfile } from "./lib/permissions";
+import { requireAuth, requireRole, getParentProfile } from "./lib/permissions";
 import { nanoid } from "nanoid";
 
 // Get children for the current parent
@@ -181,6 +181,7 @@ export const generateAccessCode = mutation({
     const codeId = await ctx.db.insert("parentAccessCodes", {
       code,
       studentId: args.studentId,
+      parentId: undefined,
       isUsed: false,
       expiresAt,
       createdAt: now,
@@ -224,6 +225,10 @@ export const linkWithCode = mutation({
 
     if (accessCode.expiresAt < Date.now()) {
       throw new Error("This code has expired");
+    }
+
+    if (accessCode.parentId && accessCode.parentId !== parentProfile._id) {
+      throw new Error("This access code was issued for another parent account");
     }
 
     // Check if already linked

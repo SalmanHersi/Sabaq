@@ -258,6 +258,50 @@ body {
   white-space: nowrap;
 }
 
+.mushaf-ayah-marker-pending,
+.mushaf-ayah-marker-start,
+.mushaf-ayah-marker-end,
+.mushaf-ayah-marker-single {
+  color: rgb(37 99 235);
+  position: relative;
+  filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.3));
+  transform: scale(1.08);
+}
+
+.mushaf-ayah-marker-pending::after,
+.mushaf-ayah-marker-start::after,
+.mushaf-ayah-marker-end::after,
+.mushaf-ayah-marker-single::after {
+  position: absolute;
+  top: -0.95em;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  min-width: 1.7em;
+  padding: 0.08em 0.32em;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.92);
+  color: #fff;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.23em;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  pointer-events: none;
+}
+
+.mushaf-ayah-marker-pending::after,
+.mushaf-ayah-marker-start::after {
+  content: "S";
+}
+
+.mushaf-ayah-marker-end::after {
+  content: "E";
+}
+
+.mushaf-ayah-marker-single::after {
+  content: "S/E";
+}
+
 /* QCF font size scales (mobile + tablet) */
 .code_v1-font-size-1 { --font-size: 4vw; --line-height: normal; font-size: var(--font-size); }
 .code_v1-font-size-2 { --font-size: 5vw; --line-height: normal; font-size: var(--font-size); }

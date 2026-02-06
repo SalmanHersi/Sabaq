@@ -146,13 +146,15 @@ export default defineSchema({
   parentAccessCodes: defineTable({
     code: v.string(),
     studentId: v.id("studentProfiles"),
+    parentId: v.optional(v.id("parentProfiles")),
     isUsed: v.boolean(),
     usedBy: v.optional(v.string()),
     expiresAt: v.number(),
     createdAt: v.number(),
   })
     .index("by_code", ["code"])
-    .index("by_student", ["studentId"]),
+    .index("by_student", ["studentId"])
+    .index("by_parent", ["parentId"]),
 
   // ============================================
   // QURAN REFERENCE DATA

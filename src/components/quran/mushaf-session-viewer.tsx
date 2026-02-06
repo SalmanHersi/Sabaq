@@ -156,7 +156,6 @@ export function MushafSessionViewer({
   const [tempStartAyah, setTempStartAyah] = useState<number | null>(null);
   const [pageNumberLoading, setPageNumberLoading] = useState(true); // Track if we're still determining page number
   const [isMobileView, setIsMobileView] = useState(false);
-  const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
 
   // Track which pages the selection spans (start and end pages)
   const [selectionPageRange, setSelectionPageRange] = useState<{ startPage: number | null; endPage: number | null }>({
@@ -165,21 +164,16 @@ export function MushafSessionViewer({
   });
 
   const hasSelection = startAyah != null && endAyah != null && startAyah > 0 && endAyah > 0;
+  const isMobileFullscreen = isMobileView && mode !== "view";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const mediaQuery = window.matchMedia("(max-width: 1024px)");
     const update = () => setIsMobileView(mediaQuery.matches);
     update();
     mediaQuery.addEventListener("change", update);
     return () => mediaQuery.removeEventListener("change", update);
   }, []);
-
-  useEffect(() => {
-    if (!isMobileView && isMobileFullscreen) {
-      setIsMobileFullscreen(false);
-    }
-  }, [isMobileView, isMobileFullscreen]);
 
   useEffect(() => {
     if (mode === "view" || currentMode !== "select") return;
@@ -525,10 +519,7 @@ export function MushafSessionViewer({
   return (
     <div
       className={cn(
-        "space-y-2 sm:space-y-3",
-        isMobileView &&
-          isMobileFullscreen &&
-          "fixed inset-0 z-50 bg-[#f9f7f2] p-2 sm:p-3 overflow-y-auto"
+        "space-y-2 sm:space-y-3"
       )}
     >
       {/* Mode Toggle */}
@@ -586,10 +577,16 @@ export function MushafSessionViewer({
       {/* Selection Info */}
       {hasSelection && (
         <div className="bg-sky-50/70 p-2 sm:p-3 rounded-lg border border-sky-200">
-          <div className="flex items-center justify-between text-xs sm:text-sm text-sky-700 flex-wrap gap-1">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-sky-700 flex-wrap gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <span>
                 Selected: Verses {startAyah} - {endAyah} ({endAyah! - startAyah! + 1} verses)
+              </span>
+              <span className="inline-flex items-center rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] sm:text-xs font-semibold">
+                Start {startAyah}
+              </span>
+              <span className="inline-flex items-center rounded bg-indigo-100 text-indigo-800 px-1.5 py-0.5 text-[10px] sm:text-xs font-semibold">
+                End {endAyah}
               </span>
               {getSelectionPageCount() > 1 && (
                 <span className="text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">
@@ -631,48 +628,19 @@ export function MushafSessionViewer({
       <div
         className={cn(
           "relative",
-          isMobileView && !isMobileFullscreen && "rounded-xl bg-stone-100/70 p-2"
+          isMobileFullscreen && "left-1/2 w-screen -translate-x-1/2"
         )}
       >
-        {isMobileView && !isMobileFullscreen && (
-          <div className="absolute -top-3 right-2 z-10">
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              onClick={() => setIsMobileFullscreen(true)}
-              className="text-[11px] shadow-sm h-7 px-3"
-            >
-              Fullscreen
-            </Button>
-          </div>
-        )}
-
         <div
           className={cn(
-            "mushaf-page bg-[#fffef5] border border-stone-300 rounded-lg shadow-xl overflow-x-auto",
-            isMobileView && isMobileFullscreen && "rounded-none border-0 shadow-none"
+            "mushaf-page bg-[#fffef5] border border-stone-300 rounded-lg shadow-xl overflow-x-hidden",
+            isMobileFullscreen && "rounded-none border-x-0 shadow-none"
           )}
           style={{ containerType: "inline-size" }}
           dir="rtl"
           translate="no"
           onClick={(event) => event.stopPropagation()}
         >
-          {isMobileView && isMobileFullscreen && (
-            <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-stone-200 flex items-center justify-between px-3 py-2">
-              <span className="text-xs font-medium text-stone-500">Fullscreen mode</span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setIsMobileFullscreen(false)}
-                className="text-xs"
-              >
-                Exit full screen
-              </Button>
-            </div>
-          )}
-
           <div className="h-1 sm:h-2 bg-gradient-to-r from-stone-300 via-amber-200 to-stone-300" />
 
           <div className="px-1 py-3 sm:px-4 sm:py-6 md:px-6 md:py-8">
@@ -698,6 +666,21 @@ export function MushafSessionViewer({
                     const displayText = fontReady ? glyphCode : word.textUthmani;
                     const ayahForgot = isAyahForgot(ayahNum);
                     const isCurrentSurah = chapterId === surahId;
+                    const isSelectingAnchor =
+                      isCurrentSurah &&
+                      selectionState === "selecting" &&
+                      tempStartAyah === ayahNum;
+                    const isCompletedStart =
+                      isCurrentSurah &&
+                      hasSelection &&
+                      selectionState !== "selecting" &&
+                      ayahNum === startAyah;
+                    const isCompletedEnd =
+                      isCurrentSurah &&
+                      hasSelection &&
+                      selectionState !== "selecting" &&
+                      ayahNum === endAyah;
+                    const isCompletedSingle = isCompletedStart && isCompletedEnd;
 
                     // Ayah end marker
                     if (isEndMarker) {
@@ -708,7 +691,11 @@ export function MushafSessionViewer({
                           className={cn(
                             "mushaf-word cursor-pointer transition-all",
                             "hover:scale-110",
-                            inRange && "text-blue-600",
+                            inRange && currentMode === "select" && "text-blue-600",
+                            isSelectingAnchor && "mushaf-ayah-marker-pending",
+                            isCompletedSingle && "mushaf-ayah-marker-single",
+                            !isCompletedSingle && isCompletedStart && "mushaf-ayah-marker-start",
+                            !isCompletedSingle && isCompletedEnd && "mushaf-ayah-marker-end",
                             ayahForgot && "text-red-600 scale-110",
                             currentMode === "mistakes" && inRange && "hover:text-red-500",
                             !isCurrentSurah && "opacity-40"
@@ -728,18 +715,10 @@ export function MushafSessionViewer({
                           "mushaf-word cursor-pointer transition-all duration-150",
                           // Dim words from other surahs
                           !isCurrentSurah && "opacity-40",
-                          // Selection highlighting - lighter color with padding to eliminate gaps
-                          inRange && !mistakeType && "bg-sky-100/30 py-1 -my-1",
-                          // Selection in progress
-                          selectionState === "selecting" &&
-                            ayahNum === tempStartAyah &&
-                            isCurrentSurah &&
-                            "bg-sky-200/50 rounded py-1 -my-1",
                           // Mistake highlighting
                           mistakeType === "WORD_MISTAKE" && "bg-orange-200/70 rounded ring-1 ring-orange-300",
                           mistakeType === "FORGOT_AYAH" && "bg-red-200/60",
                           // Hover states
-                          isCurrentSurah && mode !== "view" && currentMode === "select" && "hover:bg-sky-100/40",
                           isCurrentSurah &&
                             mode !== "view" &&
                             currentMode === "mistakes" &&
@@ -775,7 +754,12 @@ export function MushafSessionViewer({
         const isLastSurahPage = currentPageNumber >= surahPages.end;
 
         return (
-          <div className="bg-stone-100 p-2 sm:p-3 rounded-lg space-y-2">
+          <div
+            className={cn(
+              "bg-stone-100 p-2 sm:p-3 rounded-lg space-y-2",
+              isMobileFullscreen && "sticky bottom-0 z-20 rounded-none border-y border-stone-200 bg-stone-50/95 backdrop-blur"
+            )}
+          >
             {/* Main navigation */}
             <div className="flex items-center justify-between">
               <Button
@@ -815,8 +799,46 @@ export function MushafSessionViewer({
               </Button>
             </div>
 
-            {/* Page number buttons */}
-            {surahPages.total > 1 && (
+            {/* Page picker */}
+            {surahPages.total > 1 && isMobileFullscreen && (
+              <div className="space-y-1">
+                <div className="text-center text-[11px] font-medium text-stone-600">
+                  Pick page ({currentSurahPage}/{surahPages.total})
+                </div>
+                <div className="overflow-x-auto">
+                  <div className="mx-auto flex w-max items-center gap-1 px-1 pb-1">
+                    {Array.from({ length: surahPages.total }, (_, i) => {
+                      const pageNum = surahPages.start + i;
+                      const isActive = pageNum === currentPageNumber;
+                      const isInSelectionRange = pageIsInSelectionRange(pageNum);
+
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => goToPage(pageNum)}
+                          className={cn(
+                            "min-w-[30px] h-8 px-2 rounded text-xs font-semibold transition-all",
+                            isActive
+                              ? isInSelectionRange
+                                ? "bg-sky-600 text-white shadow ring-2 ring-sky-300"
+                                : "bg-stone-700 text-white shadow"
+                              : isInSelectionRange
+                                ? "bg-sky-100 border-2 border-sky-400 text-sky-700"
+                                : "bg-white border border-stone-300 text-stone-600"
+                          )}
+                          title={isInSelectionRange ? `Page ${i + 1} - In selection range` : `Go to page ${i + 1}`}
+                        >
+                          {i + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {surahPages.total > 1 && !isMobileFullscreen && (
               <div className="flex justify-center gap-1 flex-wrap">
                 {Array.from({ length: surahPages.total }, (_, i) => {
                   const pageNum = surahPages.start + i;
@@ -851,7 +873,7 @@ export function MushafSessionViewer({
       })()}
 
       {/* Legend - Compact on mobile */}
-      {mode !== "view" && (
+      {mode !== "view" && !isMobileFullscreen && (
         <div className="flex flex-wrap gap-2 sm:gap-4 text-[10px] sm:text-xs text-stone-500 justify-center">
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-sky-100" />

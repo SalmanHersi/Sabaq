@@ -40,7 +40,7 @@ export default function StudentsPage() {
     try {
       await createStudent({
         name: formData.name,
-        email: formData.email,
+        email: formData.email ? formData.email : undefined,
         parentEmail: formData.parentEmail ? formData.parentEmail : undefined,
         parentIsPrimary: formData.parentEmail ? formData.parentIsPrimary : undefined,
         teacherId: formData.teacherId ? formData.teacherId as Id<"teacherProfiles"> : undefined,
@@ -91,6 +91,8 @@ export default function StudentsPage() {
   }
 
   const loading = authLoading || students === undefined || teachers === undefined;
+  const hasEmailForContact = Boolean(formData.email.trim() || formData.parentEmail.trim());
+  const hasStudentEmail = Boolean(formData.email.trim());
 
   return (
     <div className="space-y-6">
@@ -137,15 +139,24 @@ export default function StudentsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-ink/70 mb-1">
-                    Email Address *
+                    Student Email (optional)
                   </label>
                   <input
                     type="email"
-                    required
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData((prev) => {
+                        const nextEmail = e.target.value;
+                        return {
+                          ...prev,
+                          email: nextEmail,
+                          parentIsPrimary:
+                            !nextEmail.trim() && prev.parentEmail ? true : prev.parentIsPrimary,
+                        };
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gold/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-oxblood/20"
-                    placeholder="e.g. ahmad@email.com"
+                    placeholder="e.g. ahmad@email.com (if student has one)"
                   />
                 </div>
                 <div>
@@ -171,7 +182,7 @@ export default function StudentsPage() {
                     <input
                       type="checkbox"
                       checked={formData.parentIsPrimary}
-                      disabled={!formData.parentEmail}
+                      disabled={!formData.parentEmail || !hasStudentEmail}
                       onChange={(e) =>
                         setFormData({ ...formData, parentIsPrimary: e.target.checked })
                       }
@@ -180,7 +191,10 @@ export default function StudentsPage() {
                     Parent is primary contact
                   </label>
                   <p className="text-xs text-ink/50 mt-1">
-                    Students can still log in with their own email.
+                    If parent email is provided, we will email a confirmation code before linking.
+                  </p>
+                  <p className="text-xs text-ink/50">
+                    Provide at least one email (student or parent).
                   </p>
                 </div>
                 <div className="sm:col-span-2">
@@ -208,7 +222,7 @@ export default function StudentsPage() {
               <div className="flex gap-3">
                 <Button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !hasEmailForContact}
                   className="bg-oxblood hover:bg-oxblood/90"
                 >
                   {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -256,7 +270,12 @@ export default function StudentsPage() {
             const contactLabel = student.primaryContact === "PARENT" ? "Parent" : "Student";
             const showStudentLogin = student.primaryContact === "PARENT"
               && student.user?.email
+              && !student.user.email.endsWith("@no-login.local")
               && contactEmail !== student.user?.email;
+            const assignedTeachers =
+              ("teachers" in student && Array.isArray(student.teachers)
+                ? student.teachers
+                : []) as Array<{ _id: string; user?: { name?: string | null } | null }>;
 
             return (
               <Card key={student._id} className="">
@@ -286,9 +305,9 @@ export default function StudentsPage() {
                       Assigned Teacher
                     </label>
 
-                    {"teachers" in student && Array.isArray(student.teachers) && student.teachers.length > 0 ? (
+                    {assignedTeachers.length > 0 ? (
                       <div className="space-y-2">
-                        {(student.teachers as any[]).map((teacher: any) => (
+                        {assignedTeachers.map((teacher) => (
                           <div
                             key={teacher._id}
                             className="flex items-center justify-between bg-sage/10 px-3 py-2 rounded-lg"

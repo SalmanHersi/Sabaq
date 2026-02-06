@@ -1,20 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useConvexAuth } from "convex/react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { StreakDisplay } from "@/components/progress/streak-display";
 import { MilestoneBadges } from "@/components/progress/milestone-badges";
-import { Users, BookOpen, Flame, Calendar, Award, Loader2 } from "lucide-react";
+import {
+  Users,
+  BookOpen,
+  Flame,
+  Calendar,
+  Award,
+  Loader2,
+  Link2,
+  CheckCircle2,
+} from "lucide-react";
 import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useSearchParams } from "next/navigation";
 
 export default function ParentDashboard() {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const { role, isLoading: userLoading } = useCurrentUser();
+  const searchParams = useSearchParams();
+  const linkWithCode = useMutation(api.parents.linkWithCode);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [accessCode, setAccessCode] = useState("");
+  const [relationship, setRelationship] = useState("parent");
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState("");
+  const [linkSuccess, setLinkSuccess] = useState("");
 
   // Get all children for this parent - only query when authenticated
   const children = useQuery(
@@ -28,9 +48,38 @@ export default function ParentDashboard() {
     selectedChildId ? { studentId: selectedChildId as Id<"studentProfiles"> } : "skip"
   );
 
-  // Set initial selected child
-  if (children && children.length > 0 && !selectedChildId && children[0]) {
-    setSelectedChildId(children[0]._id);
+  useEffect(() => {
+    const codeFromQuery = searchParams.get("accessCode");
+    if (codeFromQuery) {
+      setAccessCode(codeFromQuery.toUpperCase());
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (children && children.length > 0 && !selectedChildId && children[0]) {
+      setSelectedChildId(children[0]._id);
+    }
+  }, [children, selectedChildId]);
+
+  async function handleLinkSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!accessCode.trim()) return;
+
+    setLinkError("");
+    setLinkSuccess("");
+    setLinking(true);
+    try {
+      await linkWithCode({
+        code: accessCode.trim(),
+        relationship: relationship.trim() || "parent",
+      });
+      setAccessCode("");
+      setLinkSuccess("Child linked successfully.");
+    } catch (error) {
+      setLinkError(error instanceof Error ? error.message : "Failed to link access code");
+    } finally {
+      setLinking(false);
+    }
   }
 
   const loading = authLoading || userLoading || (role === "PARENT" && children === undefined);
@@ -68,6 +117,63 @@ export default function ParentDashboard() {
         <h1 className="text-xl sm:text-2xl font-bold text-navy">Parent Dashboard</h1>
         <p className="text-ink/60 text-sm">Monitor your child&apos;s Quran memorization progress</p>
       </div>
+
+      <Card className="">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-navy">
+            <Link2 className="h-5 w-5 text-oxblood" />
+            Link Child With Access Code
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLinkSubmit} className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="accessCode">Access Code</Label>
+                <Input
+                  id="accessCode"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                  placeholder="Enter 8-character code"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="relationship">Relationship (optional)</Label>
+                <Input
+                  id="relationship"
+                  value={relationship}
+                  onChange={(e) => setRelationship(e.target.value)}
+                  placeholder="parent"
+                />
+              </div>
+            </div>
+            {linkError && (
+              <p className="text-sm text-red-600">{linkError}</p>
+            )}
+            {linkSuccess && (
+              <p className="text-sm text-sage flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4" />
+                {linkSuccess}
+              </p>
+            )}
+            <Button
+              type="submit"
+              className="bg-oxblood hover:bg-oxblood/90"
+              disabled={linking || !accessCode.trim()}
+            >
+              {linking ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Linking...
+                </>
+              ) : (
+                "Confirm And Link"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {!children || children.length === 0 ? (
         <Card className="">
